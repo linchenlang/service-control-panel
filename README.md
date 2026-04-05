@@ -97,7 +97,9 @@ service-control-panel/
 ├── templates/
 │   └── index.html        # 前端页面
 ├── static/
-│   └── style.css         # 样式表
+│   ├── style.css         # 样式表
+│   └── fonts             #字体文件夹
+│       └── FZXiaoBiaoSong.ttf     #字体（方正小标宋）文件
 ├── logs/                 # 服务日志（运行时自动生成）
 ├── pids/                 # PID 文件（运行时）
 └── operations.jsonl      # 操作记录（运行时）
