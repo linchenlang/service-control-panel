@@ -19,11 +19,11 @@
 ## 安装
 
 ```bash
-git clone https://github.com/临辰郎/service-control-panel.git
+git clone https://github.com/linchenlang/service-control-panel.git
 cd service-control-panel
 pip install -r requirements.txt
 ```
-
+g
 ## 配置
 
 编辑 `config.json`：
