@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>服务管理面板 - 专业版</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+<div class="sidebar">
+    <h2>📡 服务面板</h2>
+    <div class="nav-item active" data-tab="dashboard">
+        <span class="icon">🏠</span> <span>首页</span>
+    </div>
+    <div class="nav-item" data-tab="services">
+        <span class="icon">🖥️</span> <span>服务</span>
+    </div>
+    <div class="nav-item" data-tab="traffic">
+        <span class="icon">📈</span> <span>流量</span>
+    </div>
+    <div class="nav-item" data-tab="monitor">
+        <span class="icon">📊</span> <span>监控</span>
+    </div>
+    <div class="nav-item" data-tab="settings">
+        <span class="icon">⚙️</span> <span>设置</span>
+    </div>
+    <div class="nav-item" data-tab="oplogs">
+        <span class="icon">📋</span> <span>操作日志</span>
+    </div>
+</div>
+<div class="main-content">
+    <!-- 首页 -->
+    <div id="dashboard-tab" class="tab-content" style="display: block;">
+        <div class="dashboard-header">
+            <h1>🏠 系统概览</h1>
+            <div class="total-load" id="totalLoadDisplay">总负载: --%</div>
+        </div>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>💻 CPU</h3>
+                <div id="cpuModel">加载中...</div>
+                <div>核心: <span id="cpuCores">-</span></div>
+                <div>占用: <span id="cpuPercent">-</span>%</div>
+                <canvas id="cpuGaugeSmall" width="200" height="100" style="width:100%; max-width:200px; margin-top:10px;"></canvas>
+            </div>
+            <div class="stat-card">
+                <h3>🧠 内存</h3>
+                <div>总计: <span id="memTotal">-</span> GB</div>
+                <div>已用: <span id="memUsed">-</span> GB</div>
+                <div>占用: <span id="memPercent">-</span>%</div>
+                <canvas id="memGaugeSmall" width="200" height="100" style="width:100%; max-width:200px; margin-top:10px;"></canvas>
+            </div>
+        </div>
+        <div class="stat-card full-width">
+            <h3>💾 磁盘</h3>
+            <div id="diskList" class="disk-list"></div>
+        </div>
+        <div class="stat-card full-width">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3>📡 实时曲线</h3>
+                <div>
+                    <button id="switchToNetBtn" class="small-btn active">网络流量</button>
+                    <button id="switchToDiskBtn" class="small-btn">磁盘IO</button>
+                </div>
+            </div>
+            <canvas id="trendChart" width="800" height="300" style="width:100%; height:300px;"></canvas>
+            <div id="diskSelect" style="display:none; margin-top:10px;">
+                <label>选择磁盘: </label>
+                <select id="diskSelectDropdown"></select>
+            </div>
+        </div>
+    </div>
+
+    <!-- 服务 -->
+    <div id="services-tab" class="tab-content" style="display: none;">
+        <div class="header">
+            <h1>🖥️ 服务管理</h1>
+            <div class="top-buttons">
+                <button class="btn-top" id="startAllBtn">▶ 全部启动</button>
+                <button class="btn-top" id="stopAllBtn">⏹️ 全部停止</button>
+            </div>
+        </div>
+        <div class="services-grid" id="servicesGrid"></div>
+    </div>
+
+    <!-- 流量 -->
+    <div id="traffic-tab" class="tab-content" style="display: none;">
+        <h2>📈 服务请求频率 (每5秒采样)</h2>
+        <div class="traffic-grid" id="trafficGrid"></div>
+    </div>
+
+    <!-- 监控 -->
+    <div id="monitor-tab" class="tab-content" style="display: none;">
+        <h2>📊 服务资源监控 (每3秒更新)</h2>
+        <div class="monitor-table" id="monitorTable"></div>
+    </div>
+
+    <!-- 设置 -->
+    <div id="settings-tab" class="tab-content" style="display: none;">
+        <h2>⚙️ 面板设置</h2>
+        <div class="settings-form">
+            <div class="setting-item">
+                <label>监听地址 (panel_host):</label>
+                <input type="text" id="panelHost" value="0.0.0.0">
+            </div>
+            <div class="setting-item">
+                <label>监听端口 (panel_port):</label>
+                <input type="number" id="panelPort" value="8888">
+            </div>
+            <button id="saveSettingsBtn" class="btn-top">💾 保存并重启提示</button>
+            <p class="note">修改后需要手动重启面板服务生效</p>
+        </div>
+
+        <!-- 服务配置管理区域 -->
+        <div style="margin-top: 2rem; border-top: 1px solid rgba(0,0,0,0.1); padding-top: 1.5rem;">
+            <h3>📦 服务配置管理</h3>
+            <div id="serviceConfigList" style="margin-top: 1rem;"></div>
+            <button id="addServiceBtn" class="btn-top" style="margin-top: 1rem;">➕ 添加服务</button>
+        </div>
+    </div>
+
+    <!-- 操作日志 -->
+    <div id="oplogs-tab" class="tab-content" style="display: none;">
+        <h2>📋 操作记录</h2>
+        <div id="historyTable" style="background: rgba(255,255,255,0.5); border-radius: 1rem; padding: 1rem; overflow-x: auto;"></div>
+    </div>
+</div>
+
+<!-- 日志模态框 -->
+<div id="logModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header"><span id="logTitle">服务日志</span><button class="close-btn" onclick="closeModal()">&times;</button></div>
+        <div class="modal-body" id="logContent">加载中...</div>
+        <div style="text-align:right; margin-top:0.5rem;"><button onclick="scrollLogToBottom()" style="background:#475569; color:white; border:none; border-radius:2rem; padding:0.2rem 0.8rem;">⬇️ 滚动到底部</button></div>
+    </div>
+</div>
+<div id="alertModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header"><span style="color:#c0392b;">⚠️ 通知</span><button class="close-btn" onclick="closeAlertModal()">&times;</button></div>
+        <div class="modal-body" id="alertModalContent"></div>
+        <div style="text-align:center; margin-top:1rem;"><button onclick="closeAlertModal()" style="padding:0.5rem 1rem; background:#c0392b; color:white; border:none; border-radius:2rem;">确认</button></div>
+    </div>
+</div>
+
+<!-- 服务编辑模态框 -->
+<div id="serviceModal" class="modal">
+    <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-header"><span id="serviceModalTitle">服务</span><button class="close-btn" onclick="closeServiceModal()">&times;</button></div>
+        <div class="modal-body" style="background: white; color: #333;">
+            <input type="hidden" id="editServiceId">
+            <div style="margin-bottom: 1rem;">
+                <label>ID *</label>
+                <input type="text" id="serviceId" style="width:100%; padding:0.4rem;">
+            </div>
+            <div style="margin-bottom: 1rem;">
+                <label>名称 *</label>
+                <input type="text" id="serviceName" style="width:100%; padding:0.4rem;">
+            </div>
+            <div style="margin-bottom: 1rem;">
+                <label>启动命令 * (例如 python3 app.py 或 ["python3","app.py"])</label>
+                <input type="text" id="serviceCommand" style="width:100%; padding:0.4rem;" placeholder='python3 app.py 或 ["python3","app.py"]'>
+            </div>
+            <div style="margin-bottom: 1rem;">
+                <label>工作目录 (cwd)</label>
+                <input type="text" id="serviceCwd" style="width:100%; padding:0.4rem;" placeholder="绝对路径或相对路径">
+            </div>
+            <div style="margin-bottom: 1rem;">
+                <label>端口 (可选)</label>
+                <input type="number" id="servicePort" style="width:100%; padding:0.4rem;">
+            </div>
+            <div style="text-align: right;">
+                <button id="saveServiceBtn" class="btn-top">💾 保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ---------- 全局 ----------
+    let currentDeviceIp = null;
+    let lastServiceStates = {};
+    let pendingStopIds = new Set();
+    let stopTimestamps = new Map();
+    let trendChart = null;
+    let currentTrendMode = 'net';
+    let netHistory = [];
+    let diskIoHistory = {};
+    let currentDisk = null;
+
+    // 定时器ID
+    let serviceRefreshTimer = null;
+    let monitorRefreshTimer = null;
+    let dashboardRefreshTimer = null;
+    let trafficRefreshTimer = null;
+    let trendRefreshTimer = null;
+
+    // 辅助函数
+    function showToast(message, type='info') {
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.innerText = message;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+    }
+    function showAlertModal(message) {
+        const modal = document.getElementById('alertModal');
+        document.getElementById('alertModalContent').innerText = message;
+        modal.style.display = 'flex';
+    }
+    function closeAlertModal() { document.getElementById('alertModal').style.display = 'none'; }
+    function closeModal() { document.getElementById('logModal').style.display = 'none'; }
+    function scrollLogToBottom() { const el = document.getElementById('logContent'); if(el) el.scrollTop = el.scrollHeight; }
+    function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m]); }
+
+    async function fetchMyIp() {
+        try { const res = await fetch('/api/my_ip'); const data = await res.json(); currentDeviceIp = data.ip; } catch(e) {}
+    }
+
+    // 标签页切换
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = 'none');
+        document.getElementById(`${tabId}-tab`).style.display = 'block';
+        document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+        document.querySelector(`.nav-item[data-tab="${tabId}"]`).classList.add('active');
+        if (tabId === 'services') refreshServices();
+        if (tabId === 'traffic') { refreshTrafficCards(); updateAllTraffic(); }
+        if (tabId === 'monitor') refreshMonitor();
+        if (tabId === 'oplogs') loadOperationHistory();
+        if (tabId === 'dashboard') refreshDashboard();
+        if (tabId === 'settings') { loadSettings(); loadServiceConfigs(); }
+    }
+
+    // 操作日志（红色IP）
+    async function loadOperationHistory() {
+        const res = await fetch('/api/operation_history?limit=200');
+        const records = await res.json();
+        let html = '<table style="width:100%; border-collapse:collapse;">';
+        html += '<tr><th>时间</th><th>服务</th><th>动作</th><th>来源IP</th></tr>';
+        for(let r of records) {
+            let actionText = r.action;
+            if (actionText === 'maintenance_on') actionText = '🔧 维护开启';
+            else if (actionText === 'maintenance_off') actionText = '🔧 维护关闭';
+            else if (actionText === 'start') actionText = '▶ 启动';
+            else if (actionText === 'stop') actionText = '⏹️ 停止';
+            const ipStyle = (r.source_ip !== '127.0.0.1') ? 'color: #c0392b; font-weight: bold;' : '';
+            html += `<tr>
+                        <td style="padding:8px;">${r.datetime}</td>
+                        <td>${escapeHtml(r.service_name)}</td>
+                        <td style="color:${r.action==='stop'?'#c0392b':'#2b7e3a'}">${actionText}</td>
+                        <td style="${ipStyle}">${escapeHtml(r.source_ip)}</td>
+                     </tr>`;
+        }
+        html += '</table>';
+        document.getElementById('historyTable').innerHTML = html;
+    }
+
+    // 仪表盘绘图
+    function drawGauge(canvasId, percent) {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        const w = canvas.width, h = canvas.height;
+        ctx.clearRect(0, 0, w, h);
+        const centerX = w/2, centerY = h/2 + 5;
+        const radius = Math.min(w, h) * 0.35;
+        const startAngle = Math.PI * 0.8, endAngle = Math.PI * 2.2;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+        ctx.strokeStyle = '#ddd';
+        ctx.lineWidth = 10;
+        ctx.stroke();
+        const angle = startAngle + (endAngle - startAngle) * (percent / 100);
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius, startAngle, angle);
+        ctx.strokeStyle = percent > 90 ? '#e74c3c' : (percent > 70 ? '#f39c12' : '#2ecc71');
+        ctx.lineWidth = 10;
+        ctx.stroke();
+        ctx.font = 'bold 14px "Segoe UI"';
+        ctx.fillStyle = '#1e2b3c';
+        ctx.fillText(`${percent}%`, centerX-18, centerY-5);
+    }
+
+    // 首页刷新
+    async function refreshDashboard() {
+        try {
+            const res = await fetch('/api/dashboard_stats');
+            const data = await res.json();
+            if (data.cpu && !data.cpu.error) {
+                document.getElementById('cpuModel').innerText = data.cpu.model || 'Unknown';
+                document.getElementById('cpuCores').innerText = `${data.cpu.physical_cores} 物理 / ${data.cpu.logical_cores} 逻辑`;
+                document.getElementById('cpuPercent').innerText = data.cpu.percent;
+                drawGauge('cpuGaugeSmall', data.cpu.percent);
+            }
+            if (data.memory && data.memory.total_gb) {
+                document.getElementById('memTotal').innerText = data.memory.total_gb;
+                document.getElementById('memUsed').innerText = data.memory.used_gb;
+                document.getElementById('memPercent').innerText = data.memory.percent;
+                drawGauge('memGaugeSmall', data.memory.percent);
+            }
+            let loadText = '';
+            if (data.total_load < 30) loadText = '🟢 运行流畅';
+            else if (data.total_load < 70) loadText = '🟡 负载中等';
+            else loadText = '🔴 负载较高';
+            document.getElementById('totalLoadDisplay').innerHTML = `总负载: ${data.total_load}% ${loadText}`;
+            let diskHtml = '';
+            for (let d of data.disks) {
+                diskHtml += `<div class="disk-item">
+                    <strong>${d.mount}</strong> ${d.used_gb}GB / ${d.total_gb}GB (${d.percent}%)
+                    <progress value="${d.percent}" max="100"></progress>
+                </div>`;
+            }
+            document.getElementById('diskList').innerHTML = diskHtml || '无磁盘信息';
+        } catch(e) { console.warn(e); }
+    }
+
+    // 趋势图
+    async function initTrendChart() {
+        const ctx = document.getElementById('trendChart').getContext('2d');
+        trendChart = new Chart(ctx, {
+            type: 'line',
+            data: { datasets: [] },
+            options: { responsive: true, maintainAspectRatio: true, scales: { y: { beginAtZero: true, title: { display: true, text: 'KB/s' } } } }
+        });
+        await fetchNetHistory();
+        trendRefreshTimer = setInterval(() => {
+            if (currentTrendMode === 'net') fetchNetHistory();
+            else fetchDiskHistory();
+        }, 2000);
+    }
+    async function fetchNetHistory() {
+        const res = await fetch('/api/net_io_history');
+        const data = await res.json();
+        netHistory = data.history || [];
+        updateNetChart();
+    }
+    function updateNetChart() {
+        if (!trendChart) return;
+        const sent = netHistory.map(p => p[0]);
+        const recv = netHistory.map(p => p[1]);
+        const labels = netHistory.map((_, i) => i);
+        trendChart.data = { labels, datasets: [
+            { label: '上行 KB/s', data: sent, borderColor: '#3a6ea5', fill: false },
+            { label: '下行 KB/s', data: recv, borderColor: '#e67e22', fill: false }
+        ] };
+        trendChart.update();
+    }
+    async function fetchDiskHistory() {
+        const res = await fetch('/api/disk_io');
+        const data = await res.json();
+        diskIoHistory = data;
+        const disks = Object.keys(diskIoHistory);
+        if (disks.length === 0) return;
+        if (!currentDisk || !disks.includes(currentDisk)) currentDisk = disks[0];
+        const select = document.getElementById('diskSelectDropdown');
+        select.innerHTML = '';
+        disks.forEach(d => {
+            const opt = document.createElement('option');
+            opt.value = d; opt.textContent = d;
+            if (d === currentDisk) opt.selected = true;
+            select.appendChild(opt);
+        });
+        select.onchange = () => { currentDisk = select.value; updateDiskChart(); };
+        updateDiskChart();
+    }
+    function updateDiskChart() {
+        if (!trendChart || !currentDisk) return;
+        const history = diskIoHistory[currentDisk] || [];
+        const readRates = history.map(p => p[0]);
+        const writeRates = history.map(p => p[1]);
+        const labels = history.map((_, i) => i);
+        trendChart.data = { labels, datasets: [
+            { label: '读 KB/s', data: readRates, borderColor: '#2ecc71', fill: false },
+            { label: '写 KB/s', data: writeRates, borderColor: '#e74c3c', fill: false }
+        ] };
+        trendChart.update();
+    }
+
+    // 服务管理
+    async function refreshServices() {
+        const res = await fetch('/api/services');
+        const services = await res.json();
+        const grid = document.getElementById('servicesGrid');
+        grid.innerHTML = '';
+        const newStates = {};
+        for(let svc of services) {
+            newStates[svc.id] = svc.running;
+            const statusClass = svc.running ? 'status-running' : 'status-stopped';
+            const statusText = svc.running ? `运行中 (PID: ${svc.pid||'?'})` : (svc.maintenance ? '🔧 维护中' : '已停止');
+            const maintBtnText = svc.maintenance ? '取消维护' : '停机维护';
+            const card = document.createElement('div');
+            card.className = 'service-card';
+            card.dataset.id = svc.id;
+            card.innerHTML = `
+                <div class="card-header"><span class="service-name">${escapeHtml(svc.name)}</span><span class="status-badge ${statusClass}">${statusText}</span></div>
+                <div class="info-row"><span class="info-label">🆔 ID</span><span class="info-value">${escapeHtml(svc.id)}</span></div>
+                <div class="info-row"><span class="info-label">🌐 端口</span><span class="info-value">${svc.port||'未配置'}</span></div>
+                <div class="card-actions">
+                    <button class="btn btn-start" data-id="${svc.id}">启动</button>
+                    <button class="btn btn-stop" data-id="${svc.id}">停止</button>
+                    <button class="btn btn-restart" data-id="${svc.id}">重启</button>
+                    <button class="btn btn-logs" data-id="${svc.id}">日志</button>
+                    <button class="btn btn-maintenance" data-id="${svc.id}" data-maint="${svc.maintenance}">${maintBtnText}</button>
+                </div>
+            `;
+            grid.appendChild(card);
+        }
+        // 跨设备停止检测
+        const now = Date.now();
+        for(let id in lastServiceStates){
+            if(lastServiceStates[id]===true && newStates[id]===false){
+                const svc = services.find(s=>s.id===id);
+                if(!svc) continue;
+                const lastAction = svc.last_action;
+                const isPending = pendingStopIds.has(id);
+                const stopTime = stopTimestamps.get(id);
+                const isRecentSelf = stopTime && (now-stopTime)<5000;
+                let isOther=false, otherIp=null;
+                if(lastAction && lastAction.action==='stop' && (now - lastAction.timestamp*1000)<300000){
+                    if(lastAction.source_ip !== currentDeviceIp){
+                        isOther=true;
+                        otherIp=lastAction.source_ip;
+                    }
+                }
+                if(isOther){
+                    showAlertModal(`🌐 其他设备 (${otherIp}) 停止了服务“${svc.name}”`);
+                } else if(!isPending && !isRecentSelf && !svc.maintenance){
+                    showAlertModal(`⚠️ 服务意外停止: ${svc.name}\n请检查日志或手动重启。`);
+                }
+            }
+        }
+        for(let id of pendingStopIds) if(newStates[id]===false){ pendingStopIds.delete(id); stopTimestamps.delete(id); }
+        lastServiceStates = newStates;
+        attachServiceEvents();
+    }
+    function attachServiceEvents() {
+        document.querySelectorAll('.btn-start').forEach(btn => btn.onclick = () => actionHandler(btn.dataset.id, 'start'));
+        document.querySelectorAll('.btn-stop').forEach(btn => btn.onclick = () => actionHandler(btn.dataset.id, 'stop'));
+        document.querySelectorAll('.btn-restart').forEach(btn => btn.onclick = () => actionHandler(btn.dataset.id, 'restart'));
+        document.querySelectorAll('.btn-logs').forEach(btn => btn.onclick = () => showLogs(btn.dataset.id));
+        document.querySelectorAll('.btn-maintenance').forEach(btn => btn.onclick = async () => {
+            const id = btn.dataset.id;
+            const currently = btn.dataset.maint === 'true';
+            const res = await fetch(`/api/services/${id}/maintenance`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({enabled: !currently})
+            });
+            const data = await res.json();
+            if (data.success) { 
+                showToast(data.message, 'success'); 
+                setTimeout(() => {
+                    refreshServices();
+                    refreshMonitor();
+                }, 600);
+            } else showAlertModal(data.message);
+        });
+    }
+    async function actionHandler(id, action){
+        let url = `/api/services/${id}/${action}`;
+        if(action==='stop'||action==='restart'){ pendingStopIds.add(id); stopTimestamps.set(id,Date.now()); }
+        try{
+            const res = await fetch(url,{method:'POST'});
+            const data = await res.json();
+            if(data.success) {
+                showToast(`✅ ${data.message}`,'success');
+                setTimeout(() => {
+                    refreshServices();
+                    refreshMonitor();
+                }, 600);
+            } else { 
+                showAlertModal(`❌ 操作失败：\n${data.message}`); 
+                if(action==='stop'||action==='restart'){ pendingStopIds.delete(id); stopTimestamps.delete(id); } 
+            }
+        } catch(err){ 
+            showAlertModal(`网络错误：${err.message}`); 
+            if(action==='stop'||action==='restart'){ pendingStopIds.delete(id); stopTimestamps.delete(id); } 
+        }
+    }
+    async function showLogs(id){
+        const modal = document.getElementById('logModal');
+        const logContent = document.getElementById('logContent');
+        const logTitle = document.getElementById('logTitle');
+        const res = await fetch('/api/services');
+        const services = await res.json();
+        const svc = services.find(s=>s.id===id);
+        logTitle.innerText = `📄 ${svc?.name||id} 日志 (最后15行)`;
+        modal.style.display = 'flex';
+        try{
+            const logRes = await fetch(`/api/services/${id}/logs?lines=15`);
+            const data = await logRes.json();
+            logContent.innerText = data.logs || "(无日志内容)";
+            setTimeout(scrollLogToBottom,100);
+        }catch(e){ logContent.innerText="读取日志失败"; }
+    }
+    async function startAll(){
+        const res = await fetch('/api/start_all',{method:'POST'});
+        const results = await res.json();
+        for(let r of results){
+            if(r.success) showToast(`✅ ${r.name} 启动成功`,'success');
+            else showAlertModal(`❌ ${r.name} 启动失败:\n${r.message}`);
+        }
+        setTimeout(() => {
+            refreshServices();
+            refreshMonitor();
+        }, 600);
+    }
+    async function stopAll(){
+        const listRes = await fetch('/api/services');
+        const services = await listRes.json();
+        const now=Date.now();
+        for(let svc of services){ pendingStopIds.add(svc.id); stopTimestamps.set(svc.id,now); }
+        const stopRes = await fetch('/api/stop_all',{method:'POST'});
+        const results = await stopRes.json();
+        for(let r of results){
+            if(r.success) showToast(`✅ ${r.name} 已停止`,'success');
+            else{ showToast(`❌ ${r.name} 停止失败`,'error'); }
+        }
+        setTimeout(() => {
+            refreshServices();
+            refreshMonitor();
+        }, 600);
+    }
+
+    // 流量
+    async function refreshTrafficCards() {
+        const res = await fetch('/api/services');
+        const services = await res.json();
+        const grid = document.getElementById('trafficGrid');
+        grid.innerHTML = '';
+        for(let svc of services){
+            const card = document.createElement('div');
+            card.className = 'traffic-card';
+            card.innerHTML = `
+                <div class="traffic-card-header">
+                    <span class="traffic-name">📊 ${escapeHtml(svc.name)}</span>
+                    <span class="traffic-current" id="traffic-current-${svc.id}">加载中...</span>
+                </div>
+                <canvas id="traffic-canvas-${svc.id}" class="traffic-canvas" width="400" height="80" style="width:100%; height:80px;"></canvas>
+            `;
+            grid.appendChild(card);
+        }
+        await updateAllTraffic();
+    }
+    async function updateAllTraffic(){
+        const res = await fetch('/api/services');
+        const services = await res.json();
+        for(let svc of services){
+            try{
+                const trafficRes = await fetch(`/api/traffic/${svc.id}`);
+                const data = await trafficRes.json();
+                const canvas = document.getElementById(`traffic-canvas-${svc.id}`);
+                if(canvas && data.values){
+                    drawWave(canvas, data.values);
+                    const cur = data.values[data.values.length-1]||0;
+                    const span = document.getElementById(`traffic-current-${svc.id}`);
+                    if(span) span.innerText = `最近5秒: ${cur} 请求`;
+                }
+            }catch(e){}
+        }
+    }
+    function drawWave(canvas, values) {
+        if (!canvas || !values.length) return;
+        const ctx = canvas.getContext('2d');
+        const w = canvas.clientWidth, h = canvas.clientHeight;
+        canvas.width = w; canvas.height = h;
+        ctx.clearRect(0, 0, w, h);
+        if(values.length < 2) return;
+        const maxVal = Math.max(...values, 1);
+        const step = w/(values.length-1);
+        ctx.beginPath();
+        ctx.strokeStyle='rgba(0,0,0,0.1)';
+        ctx.lineWidth=0.5;
+        for(let i=0;i<=4;i++){ let y = h-(i/4)*h; ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke(); }
+        ctx.beginPath();
+        let first=true;
+        for(let i=0;i<values.length;i++){
+            let x=i*step, y=h-(values[i]/maxVal)*h;
+            if(first){ ctx.moveTo(x,y); first=false; }
+            else{
+                let prevX=(i-1)*step, prevY=h-(values[i-1]/maxVal)*h;
+                let cpX=(prevX+x)/2, cpY=prevY;
+                ctx.quadraticCurveTo(cpX,cpY,x,y);
+            }
+        }
+        ctx.strokeStyle='#3a6ea5';
+        ctx.lineWidth=2;
+        ctx.stroke();
+        ctx.lineTo(w,h); ctx.lineTo(0,h); ctx.closePath();
+        let grad=ctx.createLinearGradient(0,0,0,h);
+        grad.addColorStop(0,'rgba(58,110,165,0.3)');
+        grad.addColorStop(1,'rgba(58,110,165,0.05)');
+        ctx.fillStyle=grad;
+        ctx.fill();
+    }
+
+    // 监控（每3秒，仅当可见时）
+    async function refreshMonitor() {
+        const monitorTab = document.getElementById('monitor-tab');
+        if (monitorTab.style.display !== 'block') return;
+        const res = await fetch('/api/services_resources');
+        const data = await res.json();
+        let html = '<table style="width:100%; border-collapse:collapse;"><tr><th>服务名称</th><th>状态</th><th>CPU%</th><th>内存(MB)</th></tr>';
+        for(let s of data) {
+            html += `<tr>
+                        <td>${escapeHtml(s.name)}</td>
+                        <td>${s.running ? '🟢 运行中' : '⚫ 已停止'}</td>
+                        <td>${s.running ? s.cpu_percent : '-'}</td>
+                        <td>${s.running ? s.mem_mb : '-'}</td>
+                     </tr>`;
+        }
+        html += '</table>';
+        document.getElementById('monitorTable').innerHTML = html;
+    }
+
+    // 设置（面板设置 + 服务配置）
+    async function loadSettings() {
+        const res = await fetch('/api/settings');
+        const settings = await res.json();
+        document.getElementById('panelHost').value = settings.panel_host;
+        document.getElementById('panelPort').value = settings.panel_port;
+    }
+    async function saveSettings() {
+        const host = document.getElementById('panelHost').value;
+        const port = parseInt(document.getElementById('panelPort').value);
+        const res = await fetch('/api/settings', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({panel_host: host, panel_port: port})
+        });
+        const data = await res.json();
+        if (data.success) showAlertModal('配置已保存，请手动重启面板服务以使新端口生效。');
+        else showAlertModal('保存失败');
+    }
+
+    // 服务配置管理
+    async function loadServiceConfigs() {
+        const res = await fetch('/api/service_configs');
+        const services = await res.json();
+        const container = document.getElementById('serviceConfigList');
+        container.innerHTML = '';
+        if (services.length === 0) {
+            container.innerHTML = '<p>暂无服务配置，点击“添加服务”创建。</p>';
+            return;
+        }
+        const table = document.createElement('table');
+        table.style.width = '100%';
+        table.style.borderCollapse = 'collapse';
+        table.innerHTML = '<thead><tr><th>ID</th><th>名称</th><th>命令</th><th>工作目录</th><th>端口</th><th>操作</th></tr></thead><tbody></tbody>';
+        const tbody = table.querySelector('tbody');
+        for (let svc of services) {
+            const row = tbody.insertRow();
+            row.insertCell(0).innerText = svc.id;
+            row.insertCell(1).innerText = svc.name;
+            row.insertCell(2).innerText = typeof svc.command === 'string' ? svc.command : JSON.stringify(svc.command);
+            row.insertCell(3).innerText = svc.cwd || '.';
+            row.insertCell(4).innerText = svc.port || '-';
+            const actionCell = row.insertCell(5);
+            const editBtn = document.createElement('button');
+            editBtn.innerText = '编辑';
+            editBtn.className = 'small-btn';
+            editBtn.style.marginRight = '0.5rem';
+            editBtn.onclick = () => openServiceModal(svc);
+            const delBtn = document.createElement('button');
+            delBtn.innerText = '删除';
+            delBtn.className = 'small-btn';
+            delBtn.style.background = '#c0392b';
+            delBtn.onclick = () => deleteService(svc.id);
+            actionCell.appendChild(editBtn);
+            actionCell.appendChild(delBtn);
+        }
+        container.appendChild(table);
+    }
+
+    function openServiceModal(service = null) {
+        const modal = document.getElementById('serviceModal');
+        document.getElementById('serviceModalTitle').innerText = service ? '编辑服务' : '添加服务';
+        document.getElementById('editServiceId').value = service ? service.id : '';
+        document.getElementById('serviceId').value = service ? service.id : '';
+        document.getElementById('serviceName').value = service ? service.name : '';
+        const cmd = service ? (typeof service.command === 'string' ? service.command : JSON.stringify(service.command)) : '';
+        document.getElementById('serviceCommand').value = cmd;
+        document.getElementById('serviceCwd').value = service ? (service.cwd || '') : '';
+        document.getElementById('servicePort').value = service ? (service.port || '') : '';
+        modal.style.display = 'flex';
+    }
+
+    function closeServiceModal() {
+        document.getElementById('serviceModal').style.display = 'none';
+    }
+
+    async function saveService() {
+        const id = document.getElementById('serviceId').value.trim();
+        const name = document.getElementById('serviceName').value.trim();
+        let command = document.getElementById('serviceCommand').value.trim();
+        const cwd = document.getElementById('serviceCwd').value.trim() || '.';
+        const port = document.getElementById('servicePort').value.trim();
+        if (!id || !name || !command) {
+            showAlertModal('请填写 ID、名称和启动命令');
+            return;
+        }
+        // 尝试解析命令为数组或字符串
+        let commandParsed;
+        try {
+            if (command.startsWith('[') && command.endsWith(']')) {
+                commandParsed = JSON.parse(command);
+            } else {
+                commandParsed = command;
+            }
+        } catch(e) {
+            commandParsed = command;
+        }
+        const editId = document.getElementById('editServiceId').value;
+        const method = editId ? 'PUT' : 'POST';
+        const url = editId ? `/api/service_configs/${editId}` : '/api/service_configs';
+        const body = {
+            id: id,
+            name: name,
+            command: commandParsed,
+            cwd: cwd,
+            port: port ? parseInt(port) : null
+        };
+        const res = await fetch(url, {
+            method: method,
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(body)
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast(data.message, 'success');
+            closeServiceModal();
+            loadServiceConfigs();
+            // 刷新服务列表（服务选项卡会重新拉取）
+            refreshServices();
+        } else {
+            showAlertModal(data.message);
+        }
+    }
+
+    async function deleteService(id) {
+        if (!confirm(`确定要删除服务 ${id} 吗？该操作会停止服务并删除配置。`)) return;
+        const res = await fetch(`/api/service_configs/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.success) {
+            showToast(data.message, 'success');
+            loadServiceConfigs();
+            refreshServices();
+        } else {
+            showAlertModal(data.message);
+        }
+    }
+
+    // 启动定时器
+    function startTimers() {
+        if (serviceRefreshTimer) clearInterval(serviceRefreshTimer);
+        if (monitorRefreshTimer) clearInterval(monitorRefreshTimer);
+        if (dashboardRefreshTimer) clearInterval(dashboardRefreshTimer);
+        if (trafficRefreshTimer) clearInterval(trafficRefreshTimer);
+        serviceRefreshTimer = setInterval(() => { 
+            if (document.querySelector('.nav-item.active').dataset.tab === 'services') refreshServices(); 
+        }, 5000);
+        monitorRefreshTimer = setInterval(refreshMonitor, 3000);
+        dashboardRefreshTimer = setInterval(() => { 
+            if (document.querySelector('.nav-item.active').dataset.tab === 'dashboard') refreshDashboard(); 
+        }, 5000);
+        trafficRefreshTimer = setInterval(() => { 
+            if (document.querySelector('.nav-item.active').dataset.tab === 'traffic') updateAllTraffic(); 
+        }, 5000);
+    }
+
+    // 初始化
+    async function init() {
+        await fetchMyIp();
+        startTimers();
+        await refreshDashboard();
+        await refreshServices();
+        await refreshTrafficCards();
+        await loadSettings();
+        await loadServiceConfigs();
+        await initTrendChart();
+        // 事件绑定
+        document.getElementById('startAllBtn').onclick = startAll;
+        document.getElementById('stopAllBtn').onclick = stopAll;
+        document.getElementById('saveSettingsBtn').onclick = saveSettings;
+        document.getElementById('addServiceBtn').onclick = () => openServiceModal();
+        document.getElementById('saveServiceBtn').onclick = saveService;
+        document.getElementById('switchToNetBtn').onclick = () => {
+            currentTrendMode = 'net';
+            document.getElementById('switchToNetBtn').classList.add('active');
+            document.getElementById('switchToDiskBtn').classList.remove('active');
+            document.getElementById('diskSelect').style.display = 'none';
+            fetchNetHistory();
+        };
+        document.getElementById('switchToDiskBtn').onclick = () => {
+            currentTrendMode = 'disk';
+            document.getElementById('switchToDiskBtn').classList.add('active');
+            document.getElementById('switchToNetBtn').classList.remove('active');
+            document.getElementById('diskSelect').style.display = 'block';
+            fetchDiskHistory();
+        };
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', () => switchTab(item.dataset.tab));
+        });
+        window.onclick = function(e){
+            if(e.target === document.getElementById('logModal')) closeModal();
+            if(e.target === document.getElementById('alertModal')) closeAlertModal();
+            if(e.target === document.getElementById('serviceModal')) closeServiceModal();
+        };
+    }
+    init();
+</script>
+</body>
+</html>
