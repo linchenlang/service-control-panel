@@ -11,12 +11,10 @@ from collections import deque
 from flask import Flask, render_template, request, jsonify
 from flask_socketio import SocketIO
 
-# ---------- 初始化 ----------
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 
-# ---------- 配置 ----------
 CONFIG_FILE = "config.json"
 
 def load_config():
@@ -31,7 +29,6 @@ PID_DIR = Path("./pids")
 PID_DIR.mkdir(exist_ok=True)
 MAINTENANCE_FILE = Path("./maintenance.json")
 
-# 维护状态存储
 if MAINTENANCE_FILE.exists():
     with open(MAINTENANCE_FILE, "r") as f:
         maintenance = json.load(f)
@@ -42,7 +39,6 @@ def save_maintenance():
     with open(MAINTENANCE_FILE, "w") as f:
         json.dump(maintenance, f)
 
-# ---------- 操作记录 ----------
 OPERATION_LOG_FILE = Path("./operations.jsonl")
 last_actions = {}
 
@@ -82,7 +78,6 @@ def get_operation_history(limit=100):
     records.reverse()
     return records[:limit]
 
-# ---------- 进程管理 ----------
 def is_process_running(pid):
     if not pid:
         return False
@@ -90,7 +85,6 @@ def is_process_running(pid):
         import psutil
         return psutil.pid_exists(pid)
     except:
-        # 降级方案
         if os.name == 'nt':
             output = subprocess.run(
                 ["tasklist", "/FI", f"PID eq {pid}", "/NH"],
@@ -120,7 +114,6 @@ def write_pid(service_id, pid):
     get_pid_file(service_id).write_text(str(pid))
 
 def remove_pid(service_id):
-    """安全删除 PID 文件，忽略不存在或权限错误"""
     pid_file = get_pid_file(service_id)
     try:
         if pid_file.exists():
@@ -129,7 +122,6 @@ def remove_pid(service_id):
         pass
 
 def kill_process_tree(pid):
-    """杀死进程树（Windows/Linux）"""
     if os.name == 'nt':
         subprocess.run(["taskkill", "/F", "/T", "/PID", str(pid)], capture_output=True)
     else:
@@ -138,13 +130,16 @@ def kill_process_tree(pid):
         except:
             os.kill(pid, signal.SIGKILL)
 
-# ---------- 服务操作 ----------
+service_health = {}
+
 def start_service(service, source_ip="unknown"):
     sid = service["id"]
     name = service["name"]
     if maintenance.get(sid, False):
+        service_health[sid] = "maintenance"
         return False, "服务处于维护模式，请先取消维护"
     if get_status(sid)["running"]:
+        service_health[sid] = "running"
         return False, "服务已在运行中"
 
     cmd = service["command"]
@@ -173,6 +168,7 @@ def start_service(service, source_ip="unknown"):
             )
         time.sleep(0.8)
         if not is_process_running(proc.pid):
+            service_health[sid] = "start_failed"
             error_msg = ""
             if log_file.exists():
                 with open(log_file, "r", encoding="utf-8", errors="ignore") as f:
@@ -181,9 +177,11 @@ def start_service(service, source_ip="unknown"):
                         error_msg = "".join(lines[-15:])
             return False, f"启动后立即崩溃，可能原因：\n{error_msg}"
         write_pid(sid, proc.pid)
+        service_health[sid] = "running"
         log_operation(sid, name, "start", source_ip)
         return True, f"启动成功，PID: {proc.pid}"
     except Exception as e:
+        service_health[sid] = "start_failed"
         error_detail = str(e)
         if log_file.exists():
             with open(log_file, "r", encoding="utf-8", errors="ignore") as f:
@@ -198,6 +196,7 @@ def stop_service(service, source_ip="unknown", skip_maintenance=False):
     pid = read_pid(sid)
     if not pid or not is_process_running(pid):
         remove_pid(sid)
+        service_health[sid] = "stopped"
         return False, "服务未运行"
     kill_process_tree(pid)
     for _ in range(10):
@@ -205,6 +204,7 @@ def stop_service(service, source_ip="unknown", skip_maintenance=False):
             break
         time.sleep(0.2)
     remove_pid(sid)
+    service_health[sid] = "stopped"
     log_operation(sid, name, "stop", source_ip)
     return True, "已停止"
 
@@ -221,12 +221,15 @@ def set_maintenance(service_id, enabled, source_ip="unknown"):
         if get_status(service_id)["running"]:
             stop_service(svc, source_ip, skip_maintenance=True)
         maintenance[service_id] = True
+        service_health[service_id] = "maintenance"
         save_maintenance()
         log_operation(service_id, svc["name"], "maintenance_on", source_ip)
         return True, "已进入维护模式，服务已停止"
     else:
         maintenance.pop(service_id, None)
         save_maintenance()
+        if service_health.get(service_id) == "maintenance":
+            service_health[service_id] = "stopped"
         log_operation(service_id, svc["name"], "maintenance_off", source_ip)
         return True, "已退出维护模式"
 
@@ -237,43 +240,69 @@ def get_status(service_id):
     if pid and is_process_running(pid):
         running = True
         pid_display = pid
+        if service_health.get(service_id) in ["crashed", "start_failed"]:
+            service_health[service_id] = "running"
     else:
         if pid:
             remove_pid(service_id)
+        if service_health.get(service_id) == "running":
+            last_action = get_last_action(service_id)
+            if not (last_action and last_action["action"] == "stop" and time.time() - last_action["timestamp"] < 10):
+                service_health[service_id] = "crashed"
     return {"running": running, "pid": pid_display}
 
-# ---------- 流量统计 ----------
+def get_service_health(service_id):
+    if maintenance.get(service_id, False):
+        return "maintenance"
+    return service_health.get(service_id, "stopped")
+
+# ---------- 流量统计（修复重启暴涨）----------
 traffic_history = {}
 traffic_lock = threading.Lock()
-LAST_LINE_POS = {}
+LAST_LOG_STATE = {}
 
-def count_http_requests_in_log(log_path, last_pos):
+def count_http_requests_in_log(log_path, last_state):
     if not log_path.exists():
-        return 0, 0
+        return 0, last_state if last_state else {"size": 0, "pos": 0}
     try:
+        current_size = log_path.stat().st_size
+        if last_state and last_state.get("size", 0) > current_size:
+            last_state["pos"] = 0
         with open(log_path, 'r', encoding='utf-8', errors='ignore') as f:
-            if last_pos > 0:
-                f.seek(last_pos)
+            if last_state and last_state.get("pos"):
+                f.seek(last_state["pos"])
             new_lines = f.readlines()
             new_pos = f.tell()
         count = 0
         for line in new_lines:
             if re.search(r'\b(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS)\b', line):
                 count += 1
-        return count, new_pos
+        new_state = {"size": current_size, "pos": new_pos}
+        return count, new_state
     except:
-        return 0, last_pos
+        return 0, last_state if last_state else {"size": 0, "pos": 0}
 
 def update_traffic_data():
+    # 初始化每个服务的日志读取位置为文件末尾，避免重启后统计历史数据
+    for svc in SERVICES:
+        sid = svc["id"]
+        log_path = LOGS_DIR / f"{sid}.log"
+        if log_path.exists():
+            with open(log_path, 'r', encoding='utf-8', errors='ignore') as f:
+                f.seek(0, os.SEEK_END)
+                initial_pos = f.tell()
+            LAST_LOG_STATE[sid] = {"size": log_path.stat().st_size, "pos": initial_pos}
+        else:
+            LAST_LOG_STATE[sid] = {"size": 0, "pos": 0}
     while True:
         time.sleep(5)
         with traffic_lock:
             for svc in SERVICES:
                 sid = svc["id"]
                 log_path = LOGS_DIR / f"{sid}.log"
-                last_pos = LAST_LINE_POS.get(sid, 0)
-                req_count, new_pos = count_http_requests_in_log(log_path, last_pos)
-                LAST_LINE_POS[sid] = new_pos
+                last_state = LAST_LOG_STATE.get(sid)
+                req_count, new_state = count_http_requests_in_log(log_path, last_state)
+                LAST_LOG_STATE[sid] = new_state
                 if sid not in traffic_history:
                     traffic_history[sid] = deque(maxlen=20)
                 traffic_history[sid].append(req_count)
@@ -287,7 +316,7 @@ def api_traffic(sid):
         history = list(traffic_history.get(sid, []))
     return jsonify({"values": history})
 
-# ---------- 系统资源（psutil 必须安装）----------
+# ---------- 系统资源 ----------
 try:
     import psutil
     PSUTIL_AVAILABLE = True
@@ -366,7 +395,7 @@ def api_dashboard_stats():
         "total_load": get_total_load()
     })
 
-# ---------- 服务资源监控（带缓存，每3秒更新）----------
+# ---------- 服务资源监控 ----------
 _services_resources_cache = []
 _resources_cache_lock = threading.Lock()
 
@@ -396,6 +425,7 @@ def update_services_resources_cache():
                 "id": sid,
                 "name": svc["name"],
                 "running": status["running"],
+                "health": get_service_health(sid),
                 "cpu_percent": round(cpu, 1),
                 "mem_mb": round(mem, 1)
             })
@@ -414,7 +444,7 @@ def api_services_resources():
     with _resources_cache_lock:
         return jsonify(_services_resources_cache)
 
-# ---------- 网络与磁盘IO历史 ----------
+# ---------- 网络与磁盘IO ----------
 net_io_history = deque(maxlen=20)
 net_io_lock = threading.Lock()
 _prev_net = None
@@ -484,7 +514,7 @@ def api_disk_io():
         data = {disk: list(history) for disk, history in disk_io_history.items()}
     return jsonify(data)
 
-# ---------- 服务状态接口（带短缓存）----------
+# ---------- 服务状态缓存 ----------
 _services_cache = []
 _services_cache_lock = threading.Lock()
 
@@ -504,7 +534,8 @@ def update_services_cache():
                         "pid": st["pid"],
                         "port": svc.get("port"),
                         "last_action": last_action,
-                        "maintenance": maintenance.get(svc["id"], False)
+                        "maintenance": maintenance.get(svc["id"], False),
+                        "health": get_service_health(svc["id"])
                     })
                 except Exception as e:
                     print(f"Error processing service {svc['id']}: {e}")
@@ -523,19 +554,16 @@ def api_list_services():
     with _services_cache_lock:
         return jsonify(_services_cache)
 
-# ---------- 服务配置管理（热重载）----------
+# ---------- 服务配置管理 ----------
 @app.route("/api/service_configs", methods=["GET"])
 def api_get_service_configs():
-    """返回完整的服务配置列表（用于编辑）"""
     return jsonify(SERVICES)
 
 @app.route("/api/service_configs", methods=["POST"])
 def api_add_service():
     data = request.json
-    # 验证必填字段
     if not data.get("id") or not data.get("name") or not data.get("command"):
         return jsonify({"success": False, "message": "缺少必填字段（id, name, command）"}), 400
-    # 检查ID是否已存在
     if any(s["id"] == data["id"] for s in SERVICES):
         return jsonify({"success": False, "message": f"服务ID '{data['id']}' 已存在"}), 400
     new_service = {
@@ -556,7 +584,6 @@ def api_update_service(sid):
     idx = next((i for i, s in enumerate(SERVICES) if s["id"] == sid), None)
     if idx is None:
         return jsonify({"success": False, "message": "服务不存在"}), 404
-    # 如果修改ID，需检查新ID是否冲突
     new_id = data.get("id", sid)
     if new_id != sid and any(s["id"] == new_id for s in SERVICES):
         return jsonify({"success": False, "message": f"服务ID '{new_id}' 已存在"}), 400
@@ -567,10 +594,6 @@ def api_update_service(sid):
         "cwd": data.get("cwd", SERVICES[idx].get("cwd", ".")),
         "port": data.get("port", SERVICES[idx].get("port"))
     }
-    # 如果ID改变了，需要处理PID文件和日志关联（简单起见，保留旧PID文件，但新服务启动会创建新文件）
-    if new_id != sid:
-        # 可选：重命名PID文件和日志文件，这里不做额外处理
-        pass
     save_service_configs()
     reload_services()
     return jsonify({"success": True, "message": "服务更新成功"})
@@ -580,45 +603,152 @@ def api_delete_service(sid):
     idx = next((i for i, s in enumerate(SERVICES) if s["id"] == sid), None)
     if idx is None:
         return jsonify({"success": False, "message": "服务不存在"}), 404
-    # 先停止服务
     svc = SERVICES[idx]
     if get_status(sid)["running"]:
         stop_service(svc, "system")
-    # 删除维护标记
     maintenance.pop(sid, None)
     save_maintenance()
-    # 删除服务
     SERVICES.pop(idx)
     save_service_configs()
     reload_services()
     return jsonify({"success": True, "message": "服务已删除"})
 
 def save_service_configs():
-    """保存当前 SERVICES 到 config.json"""
     config["services"] = SERVICES
     with open(CONFIG_FILE, "w", encoding="utf-8") as f:
         json.dump(config, f, indent=2)
 
 def reload_services():
-    """热重载服务列表，并重置相关缓存和后台线程状态"""
-    global SERVICES, traffic_history, LAST_LINE_POS
-    # 重新加载配置
+    global SERVICES, traffic_history, LAST_LOG_STATE
     new_config = load_config()
     SERVICES = new_config["services"]
-    # 清理流量缓存（移除不存在的服务）
     with traffic_lock:
         existing_ids = {s["id"] for s in SERVICES}
         for sid in list(traffic_history.keys()):
             if sid not in existing_ids:
                 del traffic_history[sid]
-        for sid in list(LAST_LINE_POS.keys()):
+        for sid in list(LAST_LOG_STATE.keys()):
             if sid not in existing_ids:
-                del LAST_LINE_POS[sid]
-    # 服务状态缓存会在下一次更新时自动适应
-    # 维护状态不清除（保留原有维护标记，如果服务被删除则已在上方删除）
-    # 注意：资源监控线程也会自动适应新的 SERVICES
+                del LAST_LOG_STATE[sid]
 
-# ---------- 其他API ----------
+# ---------- 传感器数据 ----------
+def get_sensor_data():
+    data = {
+        "temperatures": None,
+        "battery": None,
+        "fans": None,
+        "cpu_freq": None,
+        "uptime": None,
+        "process_count": None,
+        "network_interfaces": None
+    }
+    if not PSUTIL_AVAILABLE:
+        return data
+    try:
+        temps = psutil.sensors_temperatures()
+        if temps:
+            for name, entries in temps.items():
+                if entries and entries[0].current:
+                    data["temperatures"] = {
+                        "name": name,
+                        "current": round(entries[0].current, 1),
+                        "high": round(entries[0].high, 1) if entries[0].high else None,
+                        "critical": round(entries[0].critical, 1) if entries[0].critical else None
+                    }
+                    break
+    except:
+        pass
+    try:
+        battery = psutil.sensors_battery()
+        if battery:
+            secsleft = battery.secsleft
+            if secsleft == psutil.POWER_TIME_UNLIMITED:
+                time_str = "无限（电源已接通）"
+            elif secsleft == psutil.POWER_TIME_UNKNOWN or secsleft < 0:
+                time_str = "未知"
+            else:
+                hours = secsleft // 3600
+                minutes = (secsleft % 3600) // 60
+                if hours > 24:
+                    days = hours // 24
+                    hours = hours % 24
+                    time_str = f"{days}天 {hours}小时 {minutes}分钟"
+                else:
+                    time_str = f"{hours}小时 {minutes}分钟"
+            data["battery"] = {
+                "percent": battery.percent,
+                "power_plugged": battery.power_plugged,
+                "seconds_left": secsleft,
+                "time_str": time_str
+            }
+    except:
+        pass
+    try:
+        fans = psutil.sensors_fans()
+        if fans:
+            for name, entries in fans.items():
+                if entries and entries[0].current:
+                    data["fans"] = {
+                        "name": name,
+                        "rpm": entries[0].current
+                    }
+                    break
+    except:
+        pass
+    try:
+        cpu_freq = psutil.cpu_freq()
+        if cpu_freq:
+            data["cpu_freq"] = {
+                "current": round(cpu_freq.current, 0),
+                "max": round(cpu_freq.max, 0) if cpu_freq.max else None
+            }
+    except:
+        pass
+    try:
+        boot_time = psutil.boot_time()
+        uptime_seconds = time.time() - boot_time
+        days = int(uptime_seconds // 86400)
+        hours = int((uptime_seconds % 86400) // 3600)
+        minutes = int((uptime_seconds % 3600) // 60)
+        data["uptime"] = f"{days}天 {hours}小时 {minutes}分钟"
+    except:
+        pass
+    try:
+        data["process_count"] = len(psutil.pids())
+    except:
+        pass
+    try:
+        ifaces = []
+        for name, addrs in psutil.net_if_addrs().items():
+            for addr in addrs:
+                if addr.family == socket.AF_INET and not addr.address.startswith("127."):
+                    ifaces.append({"name": name, "ip": addr.address})
+                    break
+        data["network_interfaces"] = ifaces[:3]
+    except:
+        pass
+    return data
+
+@app.route("/api/sensors")
+def api_sensors():
+    return jsonify(get_sensor_data())
+
+@app.route("/api/services/<sid>/clear_log", methods=["POST"])
+def api_clear_log(sid):
+    log_file = LOGS_DIR / f"{sid}.log"
+    try:
+        if log_file.exists():
+            log_file.write_text("", encoding="utf-8")
+            with traffic_lock:
+                LAST_LOG_STATE[sid] = {"size": 0, "pos": 0}
+                if sid in traffic_history:
+                    traffic_history[sid] = deque(maxlen=20)
+            return jsonify({"success": True, "message": "日志已清空"})
+        else:
+            return jsonify({"success": False, "message": "日志文件不存在"}), 404
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
 @app.route("/api/my_ip", methods=["GET"])
 def api_my_ip():
     return jsonify({"ip": request.remote_addr or get_local_ip()})
