@@ -23,6 +23,7 @@ body {
     display: flex;
 }
 
+/* 侧边栏 */
 .sidebar {
     width: 260px;
     background: rgba(30,43,60,0.85);
@@ -75,6 +76,7 @@ body {
     max-height: 100vh;
 }
 
+/* 头部 */
 .header {
     display: flex;
     justify-content: space-between;
@@ -109,6 +111,7 @@ body {
     background: #3a6ea5;
 }
 
+/* 首页仪表盘 */
 .dashboard-header {
     display: flex;
     justify-content: space-between;
@@ -124,6 +127,7 @@ body {
     border-radius: 2rem;
 }
 
+/* 传感器卡片网格 */
 .sensors-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
@@ -175,10 +179,104 @@ body {
     margin: 0.2rem 0;
 }
 
+/* 趋势图区域 */
 .trend-section {
     margin-top: 1rem;
 }
 
+/* 两列布局（网络接口 + IP地址） */
+.two-columns {
+    display: flex;
+    gap: 1.5rem;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+}
+
+.two-columns > .sensor-card {
+    flex: 1;
+    margin: 0 !important;
+}
+
+/* IP地址卡片分组样式 */
+.ip-adapter-group {
+    margin-bottom: 1rem;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+    padding-bottom: 0.5rem;
+}
+
+.ip-adapter-name {
+    font-weight: bold;
+    font-size: 0.95rem;
+    margin: 0.5rem 0 0.3rem 0;
+    color: #1e2b3c;
+    border-left: 3px solid #3a6ea5;
+    padding-left: 0.5rem;
+}
+
+.ip-subtitle {
+    font-weight: 600;
+    font-size: 0.8rem;
+    margin: 0.3rem 0 0.1rem 0;
+    color: #2c3e4e;
+    padding-left: 0.8rem;
+}
+
+.ip-list {
+    margin-left: 1rem;
+}
+
+.ip-item {
+    font-size: 0.8rem;
+    color: #2c3e4e;
+    margin: 0.2rem 0;
+    word-break: break-all;
+    line-height: 1.4;
+}
+
+/* 端口扫描弹窗网格 */
+.ports-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 0.5rem;
+    max-height: 400px;
+    overflow-y: auto;
+    padding: 0.5rem;
+}
+
+.port-item {
+    background: rgba(0,0,0,0.05);
+    padding: 0.3rem;
+    text-align: center;
+    border-radius: 0.3rem;
+    font-family: monospace;
+    border-right: 1px solid #ddd;
+    border-bottom: 1px solid #ddd;
+}
+
+.port-item:nth-child(6n) {
+    border-right: none;
+}
+
+/* 验证按钮 */
+.verify-ip-btn {
+    background: #3a6ea5;
+    color: white;
+    border: none;
+    border-radius: 1rem;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.verify-ip-btn:hover {
+    background: #2c5a8c;
+    transform: scale(0.95);
+}
+
+.ip-verify-result {
+    margin-left: 0.5rem;
+}
+
+/* 服务卡片 */
 .services-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
@@ -289,6 +387,7 @@ body {
 .btn-maintenance { background: #8e44ad; color: white; }
 .btn:hover { filter: brightness(0.92); transform: scale(0.97); }
 
+/* 流量卡片 */
 .traffic-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
@@ -330,6 +429,7 @@ body {
     border-radius: 1rem;
 }
 
+/* 监控表格 */
 .monitor-table {
     background: rgba(255,255,255,0.5);
     border-radius: 1rem;
@@ -348,6 +448,7 @@ body {
     border-bottom: 1px solid rgba(0,0,0,0.1);
 }
 
+/* 设置表单 */
 .settings-form {
     background: rgba(255,255,255,0.5);
     backdrop-filter: blur(8px);
@@ -379,6 +480,7 @@ body {
     color: #666;
 }
 
+/* 模态框 */
 .modal {
     display: none;
     position: fixed;
@@ -442,6 +544,7 @@ body {
     white-space: pre-wrap;
 }
 
+/* 通知 */
 .toast {
     position: fixed;
     bottom: 20px;
@@ -467,6 +570,7 @@ body {
     100% { opacity: 0; transform: translateY(20px); }
 }
 
+/* 响应式 */
 @media (max-width: 768px) {
     .sidebar { width: 70px; }
     .sidebar h2, .nav-item span:not(.icon) { display: none; }
@@ -475,6 +579,8 @@ body {
     .sensors-grid { grid-template-columns: 1fr; }
     .sensor-card { flex-direction: column; text-align: center; }
     .sensor-right { margin-left: 0; margin-top: 0.5rem; }
+    .two-columns { flex-direction: column; }
+    .ports-grid { grid-template-columns: repeat(3, 1fr); }
 }
 
 /* 自定义滚动条样式（适用于 WebKit 浏览器） */
