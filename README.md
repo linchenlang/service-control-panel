@@ -38,10 +38,10 @@ git clone https://github.com/linchenlang/service-control-panel.git
 cd service-control-panel
 pip install -r requirements.txt
 ```
-g
+
 ## 配置
 
-编辑 `config.json`：
+编辑 `config.json` 文件：
 
 | 字段 | 说明 |
 |------|------|
@@ -50,7 +50,7 @@ g
 | `logs_dir` | 日志存放目录 |
 | `services` | 需要管理的服务列表 |
 
-每个服务配置项：
+每个服务配置项格式：
 
 ```json
 {
@@ -58,11 +58,11 @@ g
   "name": "显示名称",
   "command": "python3 app.py" 或 ["python3", "app.py"],
   "cwd": "工作目录（相对或绝对路径）",
-  "port": 服务端口（可选）
+  "port": "服务端口（可选）"
 }
 ```
 
-> 注意：使用相对路径时，相对于面板程序所在目录。
+> 注意：使用相对路径时，路径相对于面板程序所在目录。
 
 ## 运行
 
@@ -98,8 +98,8 @@ service-control-panel/
 │   └── index.html        # 前端页面
 ├── static/
 │   ├── style.css         # 样式表
-│   └── fonts             #字体文件夹
-│       └── FZXiaoBiaoSong.ttf     #字体（方正小标宋）文件
+│   └── fonts/            # 字体文件夹
+│       └── FZXiaoBiaoSong.ttf   # 方正小标宋字体文件
 ├── logs/                 # 服务日志（运行时自动生成）
 ├── pids/                 # PID 文件（运行时）
 └── operations.jsonl      # 操作记录（运行时）
