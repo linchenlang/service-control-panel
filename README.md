@@ -18,17 +18,17 @@
 
 ## 相关截图展示
 
-<img width="1919" height="1079" alt="屏幕截图 2026-04-05 180741" src="https://github.com/user-attachments/assets/9b618e5e-11f0-4b0b-b6f3-f8dc472669de" />
+<img width="1919" height="907" alt="屏幕截图 2026-04-06 131652" src="https://github.com/user-attachments/assets/285368b9-9a0b-4235-bd2d-7c6eccaca473" />
 
-<img width="1919" height="1076" alt="屏幕截图 2026-04-05 180548" src="https://github.com/user-attachments/assets/d56d327a-58cf-4bfa-81a0-ffa0c1ff5087" />
+<img width="1919" height="907" alt="屏幕截图 2026-04-06 131718" src="https://github.com/user-attachments/assets/193b68d8-0e2b-48b4-943e-d139a283c2bb" />
 
-<img width="1919" height="1079" alt="屏幕截图 2026-04-05 180700" src="https://github.com/user-attachments/assets/232a89a2-70b6-4e5e-9268-52b17f597e80" />
+<img width="1918" height="907" alt="屏幕截图 2026-04-06 131803" src="https://github.com/user-attachments/assets/987685a9-4ee0-4d17-a169-364c6f6b1f79" />
 
-<img width="1919" height="1079" alt="屏幕截图 2026-04-05 180713" src="https://github.com/user-attachments/assets/503578b1-f038-44c6-99a5-6c4920bfcdcf" />
+<img width="1919" height="904" alt="屏幕截图 2026-04-06 131822" src="https://github.com/user-attachments/assets/42c0e745-d059-46f9-a563-5c79959d4536" />
 
-<img width="1919" height="1079" alt="屏幕截图 2026-04-05 180725" src="https://github.com/user-attachments/assets/cd36c395-08a6-42b0-8e33-4f3757fada96" />
+<img width="1919" height="905" alt="屏幕截图 2026-04-06 131910" src="https://github.com/user-attachments/assets/b286ed83-d150-44a9-9ea7-c88d7c95d2a8" />
 
-<img width="1919" height="1079" alt="屏幕截图 2026-04-05 180732" src="https://github.com/user-attachments/assets/e9995b50-26c9-42c5-b03c-5db7e3e25baf" />
+<img width="1919" height="903" alt="屏幕截图 2026-04-06 132022" src="https://github.com/user-attachments/assets/fdb5e367-c234-45da-8867-20b2347c87de" />
 
 
 ## 安装
