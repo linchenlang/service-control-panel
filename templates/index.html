@@ -9,56 +9,37 @@
 </head>
 <body>
 <div class="sidebar">
-    <h2>📡 服务面板</h2>
+    <h2>服务面板</h2>
     <div class="nav-item active" data-tab="dashboard">
-        <span class="icon">🏠</span> <span>首页</span>
+        <span>首页</span>
     </div>
     <div class="nav-item" data-tab="services">
-        <span class="icon">🖥️</span> <span>服务</span>
+        <span>服务</span>
     </div>
     <div class="nav-item" data-tab="traffic">
-        <span class="icon">📈</span> <span>流量</span>
+        <span>流量</span>
     </div>
     <div class="nav-item" data-tab="monitor">
-        <span class="icon">📊</span> <span>监控</span>
+        <span>监控</span>
     </div>
     <div class="nav-item" data-tab="settings">
-        <span class="icon">⚙️</span> <span>设置</span>
+        <span>设置</span>
     </div>
     <div class="nav-item" data-tab="oplogs">
-        <span class="icon">📋</span> <span>操作日志</span>
+        <span>操作日志</span>
     </div>
 </div>
 <div class="main-content">
     <!-- 首页 -->
     <div id="dashboard-tab" class="tab-content" style="display: block;">
         <div class="dashboard-header">
-            <h1>🏠 系统概览</h1>
+            <h1>系统概览</h1>
             <div class="total-load" id="totalLoadDisplay">总负载: --%</div>
         </div>
-        <div class="stats-grid">
-            <div class="stat-card">
-                <h3>💻 CPU</h3>
-                <div id="cpuModel">加载中...</div>
-                <div>核心: <span id="cpuCores">-</span></div>
-                <div>占用: <span id="cpuPercent">-</span>%</div>
-                <canvas id="cpuGaugeSmall" width="200" height="100" style="width:100%; max-width:200px; margin-top:10px;"></canvas>
-            </div>
-            <div class="stat-card">
-                <h3>🧠 内存</h3>
-                <div>总计: <span id="memTotal">-</span> GB</div>
-                <div>已用: <span id="memUsed">-</span> GB</div>
-                <div>占用: <span id="memPercent">-</span>%</div>
-                <canvas id="memGaugeSmall" width="200" height="100" style="width:100%; max-width:200px; margin-top:10px;"></canvas>
-            </div>
-        </div>
-        <div class="stat-card full-width">
-            <h3>💾 磁盘</h3>
-            <div id="diskList" class="disk-list"></div>
-        </div>
-        <div class="stat-card full-width">
+        <div class="sensors-grid" id="sensorsGrid"></div>
+        <div class="trend-section">
             <div style="display: flex; justify-content: space-between; align-items: center;">
-                <h3>📡 实时曲线</h3>
+                <h3>实时曲线</h3>
                 <div>
                     <button id="switchToNetBtn" class="small-btn active">网络流量</button>
                     <button id="switchToDiskBtn" class="small-btn">磁盘IO</button>
@@ -72,33 +53,33 @@
         </div>
     </div>
 
-    <!-- 服务 -->
+    <!-- 服务选项卡 -->
     <div id="services-tab" class="tab-content" style="display: none;">
         <div class="header">
-            <h1>🖥️ 服务管理</h1>
+            <h1>服务管理</h1>
             <div class="top-buttons">
-                <button class="btn-top" id="startAllBtn">▶ 全部启动</button>
-                <button class="btn-top" id="stopAllBtn">⏹️ 全部停止</button>
+                <button class="btn-top" id="startAllBtn">全部启动</button>
+                <button class="btn-top" id="stopAllBtn">全部停止</button>
             </div>
         </div>
         <div class="services-grid" id="servicesGrid"></div>
     </div>
 
-    <!-- 流量 -->
+    <!-- 流量选项卡 -->
     <div id="traffic-tab" class="tab-content" style="display: none;">
-        <h2>📈 服务请求频率 (每5秒采样)</h2>
+        <h2>服务请求频率 (每5秒采样)</h2>
         <div class="traffic-grid" id="trafficGrid"></div>
     </div>
 
-    <!-- 监控 -->
+    <!-- 监控选项卡 -->
     <div id="monitor-tab" class="tab-content" style="display: none;">
-        <h2>📊 服务资源监控 (每3秒更新)</h2>
+        <h2>服务资源监控 (每3秒更新)</h2>
         <div class="monitor-table" id="monitorTable"></div>
     </div>
 
-    <!-- 设置 -->
+    <!-- 设置选项卡 -->
     <div id="settings-tab" class="tab-content" style="display: none;">
-        <h2>⚙️ 面板设置</h2>
+        <h2>面板设置</h2>
         <div class="settings-form">
             <div class="setting-item">
                 <label>监听地址 (panel_host):</label>
@@ -108,21 +89,19 @@
                 <label>监听端口 (panel_port):</label>
                 <input type="number" id="panelPort" value="8888">
             </div>
-            <button id="saveSettingsBtn" class="btn-top">💾 保存并重启提示</button>
+            <button id="saveSettingsBtn" class="btn-top">保存并重启提示</button>
             <p class="note">修改后需要手动重启面板服务生效</p>
         </div>
-
-        <!-- 服务配置管理区域 -->
         <div style="margin-top: 2rem; border-top: 1px solid rgba(0,0,0,0.1); padding-top: 1.5rem;">
-            <h3>📦 服务配置管理</h3>
+            <h3>服务配置管理</h3>
             <div id="serviceConfigList" style="margin-top: 1rem;"></div>
-            <button id="addServiceBtn" class="btn-top" style="margin-top: 1rem;">➕ 添加服务</button>
+            <button id="addServiceBtn" class="btn-top" style="margin-top: 1rem;">添加服务</button>
         </div>
     </div>
 
-    <!-- 操作日志 -->
+    <!-- 操作日志选项卡 -->
     <div id="oplogs-tab" class="tab-content" style="display: none;">
-        <h2>📋 操作记录</h2>
+        <h2>操作记录</h2>
         <div id="historyTable" style="background: rgba(255,255,255,0.5); border-radius: 1rem; padding: 1rem; overflow-x: auto;"></div>
     </div>
 </div>
@@ -130,14 +109,20 @@
 <!-- 日志模态框 -->
 <div id="logModal" class="modal">
     <div class="modal-content">
-        <div class="modal-header"><span id="logTitle">服务日志</span><button class="close-btn" onclick="closeModal()">&times;</button></div>
+        <div class="modal-header">
+            <span id="logTitle">服务日志</span>
+            <div>
+                <button id="clearLogBtn" class="small-btn" style="background:#c0392b; margin-right:0.5rem;">清空日志</button>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+        </div>
         <div class="modal-body" id="logContent">加载中...</div>
-        <div style="text-align:right; margin-top:0.5rem;"><button onclick="scrollLogToBottom()" style="background:#475569; color:white; border:none; border-radius:2rem; padding:0.2rem 0.8rem;">⬇️ 滚动到底部</button></div>
+        <div style="text-align:right; margin-top:0.5rem;"><button onclick="scrollLogToBottom()" style="background:#475569; color:white; border:none; border-radius:2rem; padding:0.2rem 0.8rem;">滚动到底部</button></div>
     </div>
 </div>
 <div id="alertModal" class="modal">
     <div class="modal-content">
-        <div class="modal-header"><span style="color:#c0392b;">⚠️ 通知</span><button class="close-btn" onclick="closeAlertModal()">&times;</button></div>
+        <div class="modal-header"><span style="color:#c0392b;">通知</span><button class="close-btn" onclick="closeAlertModal()">&times;</button></div>
         <div class="modal-body" id="alertModalContent"></div>
         <div style="text-align:center; margin-top:1rem;"><button onclick="closeAlertModal()" style="padding:0.5rem 1rem; background:#c0392b; color:white; border:none; border-radius:2rem;">确认</button></div>
     </div>
@@ -170,7 +155,7 @@
                 <input type="number" id="servicePort" style="width:100%; padding:0.4rem;">
             </div>
             <div style="text-align: right;">
-                <button id="saveServiceBtn" class="btn-top">💾 保存</button>
+                <button id="saveServiceBtn" class="btn-top">保存</button>
             </div>
         </div>
     </div>
@@ -188,14 +173,13 @@
     let diskIoHistory = {};
     let currentDisk = null;
 
-    // 定时器ID
     let serviceRefreshTimer = null;
     let monitorRefreshTimer = null;
     let dashboardRefreshTimer = null;
     let trafficRefreshTimer = null;
     let trendRefreshTimer = null;
+    let currentLogServiceId = null;
 
-    // 辅助函数
     function showToast(message, type='info') {
         const toast = document.createElement('div');
         toast.className = `toast ${type}`;
@@ -217,7 +201,6 @@
         try { const res = await fetch('/api/my_ip'); const data = await res.json(); currentDeviceIp = data.ip; } catch(e) {}
     }
 
-    // 标签页切换
     function switchTab(tabId) {
         document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = 'none');
         document.getElementById(`${tabId}-tab`).style.display = 'block';
@@ -227,11 +210,10 @@
         if (tabId === 'traffic') { refreshTrafficCards(); updateAllTraffic(); }
         if (tabId === 'monitor') refreshMonitor();
         if (tabId === 'oplogs') loadOperationHistory();
-        if (tabId === 'dashboard') refreshDashboard();
+        if (tabId === 'dashboard') { refreshDashboard(); refreshSensors(); }
         if (tabId === 'settings') { loadSettings(); loadServiceConfigs(); }
     }
 
-    // 操作日志（红色IP）
     async function loadOperationHistory() {
         const res = await fetch('/api/operation_history?limit=200');
         const records = await res.json();
@@ -239,10 +221,10 @@
         html += '<tr><th>时间</th><th>服务</th><th>动作</th><th>来源IP</th></tr>';
         for(let r of records) {
             let actionText = r.action;
-            if (actionText === 'maintenance_on') actionText = '🔧 维护开启';
-            else if (actionText === 'maintenance_off') actionText = '🔧 维护关闭';
-            else if (actionText === 'start') actionText = '▶ 启动';
-            else if (actionText === 'stop') actionText = '⏹️ 停止';
+            if (actionText === 'maintenance_on') actionText = '维护开启';
+            else if (actionText === 'maintenance_off') actionText = '维护关闭';
+            else if (actionText === 'start') actionText = '启动';
+            else if (actionText === 'stop') actionText = '停止';
             const ipStyle = (r.source_ip !== '127.0.0.1') ? 'color: #c0392b; font-weight: bold;' : '';
             html += `<tr>
                         <td style="padding:8px;">${r.datetime}</td>
@@ -255,66 +237,180 @@
         document.getElementById('historyTable').innerHTML = html;
     }
 
-    // 仪表盘绘图
-    function drawGauge(canvasId, percent) {
+    // 绘制小圆环（自动居中，支持自定义颜色）
+    function drawSmallGauge(canvasId, percent, customColor = null) {
         const canvas = document.getElementById(canvasId);
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
         const w = canvas.width, h = canvas.height;
         ctx.clearRect(0, 0, w, h);
-        const centerX = w/2, centerY = h/2 + 5;
-        const radius = Math.min(w, h) * 0.35;
-        const startAngle = Math.PI * 0.8, endAngle = Math.PI * 2.2;
+        const centerX = w/2, centerY = h/2;
+        const radius = Math.min(w, h) * 0.32;
+        const startAngle = Math.PI * 0.75, endAngle = Math.PI * 2.25;
         ctx.beginPath();
         ctx.arc(centerX, centerY, radius, startAngle, endAngle);
         ctx.strokeStyle = '#ddd';
-        ctx.lineWidth = 10;
+        ctx.lineWidth = 8;
         ctx.stroke();
         const angle = startAngle + (endAngle - startAngle) * (percent / 100);
         ctx.beginPath();
         ctx.arc(centerX, centerY, radius, startAngle, angle);
-        ctx.strokeStyle = percent > 90 ? '#e74c3c' : (percent > 70 ? '#f39c12' : '#2ecc71');
-        ctx.lineWidth = 10;
+        let color = customColor;
+        if (!color) {
+            color = percent > 90 ? '#e74c3c' : (percent > 70 ? '#f39c12' : '#2ecc71');
+        }
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 8;
         ctx.stroke();
-        ctx.font = 'bold 14px "Segoe UI"';
-        ctx.fillStyle = '#1e2b3c';
-        ctx.fillText(`${percent}%`, centerX-18, centerY-5);
+        const fontSize = Math.floor(radius * 0.45);
+        ctx.font = `bold ${fontSize}px "Segoe UI", "FZXiaoBiaoSong", monospace`;
+        ctx.fillStyle = color;
+        const text = `${percent}%`;
+        const textWidth = ctx.measureText(text).width;
+        ctx.fillText(text, centerX - textWidth/2, centerY + fontSize/3);
     }
 
-    // 首页刷新
+    async function refreshSensors() {
+        const cpuRes = await fetch('/api/dashboard_stats');
+        const cpuData = await cpuRes.json();
+        const sensorRes = await fetch('/api/sensors');
+        const sensorData = await sensorRes.json();
+
+        const sensorsGrid = document.getElementById('sensorsGrid');
+        sensorsGrid.innerHTML = '';
+
+        // CPU 卡片
+        const cpuCard = document.createElement('div');
+        cpuCard.className = 'sensor-card';
+        cpuCard.innerHTML = `
+            <div class="sensor-left">
+                <div class="sensor-title">CPU</div>
+                <div class="sensor-value" id="cpuModel">${escapeHtml(cpuData.cpu.model || 'Unknown')}</div>
+                <div class="sensor-detail">核心: ${cpuData.cpu.physical_cores || '-'} 物理 / ${cpuData.cpu.logical_cores || '-'} 逻辑</div>
+                <div class="sensor-detail">占用: ${cpuData.cpu.percent || 0}%</div>
+                <div class="sensor-detail" id="cpuFreqDetail" style="${sensorData.cpu_freq ? '' : 'display:none'}">频率: ${sensorData.cpu_freq ? sensorData.cpu_freq.current + ' MHz' : ''}</div>
+            </div>
+            <div class="sensor-right">
+                <canvas id="cpuGauge" width="100" height="100" class="small-gauge"></canvas>
+            </div>
+        `;
+        sensorsGrid.appendChild(cpuCard);
+        drawSmallGauge('cpuGauge', cpuData.cpu.percent || 0);
+
+        // 内存卡片
+        const memCard = document.createElement('div');
+        memCard.className = 'sensor-card';
+        memCard.innerHTML = `
+            <div class="sensor-left">
+                <div class="sensor-title">内存</div>
+                <div class="sensor-detail">总计: ${cpuData.memory.total_gb || 0} GB</div>
+                <div class="sensor-detail">已用: ${cpuData.memory.used_gb || 0} GB</div>
+                <div class="sensor-detail">占用: ${cpuData.memory.percent || 0}%</div>
+            </div>
+            <div class="sensor-right">
+                <canvas id="memGauge" width="100" height="100" class="small-gauge"></canvas>
+            </div>
+        `;
+        sensorsGrid.appendChild(memCard);
+        drawSmallGauge('memGauge', cpuData.memory.percent || 0);
+
+        // 温度
+        if (sensorData.temperatures) {
+            const tempCard = document.createElement('div');
+            tempCard.className = 'sensor-card';
+            const tempPercent = Math.min(100, Math.max(0, (sensorData.temperatures.current / 90) * 100));
+            tempCard.innerHTML = `
+                <div class="sensor-left">
+                    <div class="sensor-title">温度</div>
+                    <div class="sensor-value">${sensorData.temperatures.name}</div>
+                    <div class="sensor-detail">当前: ${sensorData.temperatures.current} °C</div>
+                    ${sensorData.temperatures.high ? `<div class="sensor-detail">警告阈值: ${sensorData.temperatures.high} °C</div>` : ''}
+                </div>
+                <div class="sensor-right">
+                    <canvas id="tempGauge" width="100" height="100" class="small-gauge"></canvas>
+                </div>
+            `;
+            sensorsGrid.appendChild(tempCard);
+            drawSmallGauge('tempGauge', tempPercent);
+        }
+
+        // 电池
+        if (sensorData.battery) {
+            const batteryCard = document.createElement('div');
+            batteryCard.className = 'sensor-card';
+            const percent = sensorData.battery.percent;
+            let batteryColor = '#2ecc71';
+            if (percent <= 20) batteryColor = '#e74c3c';
+            else if (percent <= 50) batteryColor = '#f39c12';
+            batteryCard.innerHTML = `
+                <div class="sensor-left">
+                    <div class="sensor-title">电池</div>
+                    <div class="sensor-value">${percent}%</div>
+                    <div class="sensor-detail">${sensorData.battery.power_plugged ? '充电中' : '使用电池'}</div>
+                    <div class="sensor-detail">剩余时间: ${sensorData.battery.time_str}</div>
+                </div>
+                <div class="sensor-right">
+                    <canvas id="batteryGauge" width="100" height="100" class="small-gauge"></canvas>
+                </div>
+            `;
+            sensorsGrid.appendChild(batteryCard);
+            drawSmallGauge('batteryGauge', percent, batteryColor);
+        }
+
+        // 风扇
+        if (sensorData.fans) {
+            const fanCard = document.createElement('div');
+            fanCard.className = 'sensor-card';
+            fanCard.innerHTML = `
+                <div class="sensor-left">
+                    <div class="sensor-title">风扇</div>
+                    <div class="sensor-value">${sensorData.fans.name}</div>
+                    <div class="sensor-detail">转速: ${sensorData.fans.rpm} RPM</div>
+                </div>
+            `;
+            sensorsGrid.appendChild(fanCard);
+        }
+
+        // 系统信息
+        if (sensorData.uptime || sensorData.process_count) {
+            const sysCard = document.createElement('div');
+            sysCard.className = 'sensor-card';
+            sysCard.innerHTML = `
+                <div class="sensor-left">
+                    <div class="sensor-title">系统</div>
+                    ${sensorData.uptime ? `<div class="sensor-detail">运行时间: ${sensorData.uptime}</div>` : ''}
+                    ${sensorData.process_count ? `<div class="sensor-detail">进程数: ${sensorData.process_count}</div>` : ''}
+                </div>
+            `;
+            sensorsGrid.appendChild(sysCard);
+        }
+
+        // 网络接口
+        if (sensorData.network_interfaces && sensorData.network_interfaces.length > 0) {
+            const netCard = document.createElement('div');
+            netCard.className = 'sensor-card';
+            let netHtml = `<div class="sensor-left"><div class="sensor-title">网络接口</div>`;
+            for (let iface of sensorData.network_interfaces) {
+                netHtml += `<div class="sensor-detail">${iface.name}: ${iface.ip}</div>`;
+            }
+            netHtml += `</div>`;
+            netCard.innerHTML = netHtml;
+            sensorsGrid.appendChild(netCard);
+        }
+    }
+
     async function refreshDashboard() {
         try {
             const res = await fetch('/api/dashboard_stats');
             const data = await res.json();
-            if (data.cpu && !data.cpu.error) {
-                document.getElementById('cpuModel').innerText = data.cpu.model || 'Unknown';
-                document.getElementById('cpuCores').innerText = `${data.cpu.physical_cores} 物理 / ${data.cpu.logical_cores} 逻辑`;
-                document.getElementById('cpuPercent').innerText = data.cpu.percent;
-                drawGauge('cpuGaugeSmall', data.cpu.percent);
-            }
-            if (data.memory && data.memory.total_gb) {
-                document.getElementById('memTotal').innerText = data.memory.total_gb;
-                document.getElementById('memUsed').innerText = data.memory.used_gb;
-                document.getElementById('memPercent').innerText = data.memory.percent;
-                drawGauge('memGaugeSmall', data.memory.percent);
-            }
             let loadText = '';
-            if (data.total_load < 30) loadText = '🟢 运行流畅';
-            else if (data.total_load < 70) loadText = '🟡 负载中等';
-            else loadText = '🔴 负载较高';
+            if (data.total_load < 30) loadText = '运行流畅';
+            else if (data.total_load < 70) loadText = '负载中等';
+            else loadText = '负载较高';
             document.getElementById('totalLoadDisplay').innerHTML = `总负载: ${data.total_load}% ${loadText}`;
-            let diskHtml = '';
-            for (let d of data.disks) {
-                diskHtml += `<div class="disk-item">
-                    <strong>${d.mount}</strong> ${d.used_gb}GB / ${d.total_gb}GB (${d.percent}%)
-                    <progress value="${d.percent}" max="100"></progress>
-                </div>`;
-            }
-            document.getElementById('diskList').innerHTML = diskHtml || '无磁盘信息';
         } catch(e) { console.warn(e); }
     }
 
-    // 趋势图
     async function initTrendChart() {
         const ctx = document.getElementById('trendChart').getContext('2d');
         trendChart = new Chart(ctx, {
@@ -376,7 +472,7 @@
         trendChart.update();
     }
 
-    // 服务管理
+    // 服务管理（已移除表情包）
     async function refreshServices() {
         const res = await fetch('/api/services');
         const services = await res.json();
@@ -385,16 +481,37 @@
         const newStates = {};
         for(let svc of services) {
             newStates[svc.id] = svc.running;
-            const statusClass = svc.running ? 'status-running' : 'status-stopped';
-            const statusText = svc.running ? `运行中 (PID: ${svc.pid||'?'})` : (svc.maintenance ? '🔧 维护中' : '已停止');
+            let statusClass = 'status-stopped';
+            let statusText = '';
+            switch(svc.health) {
+                case 'running':
+                    statusClass = 'status-running';
+                    statusText = `运行中 (PID: ${svc.pid||'?'})`;
+                    break;
+                case 'crashed':
+                    statusClass = 'status-crashed';
+                    statusText = '崩溃';
+                    break;
+                case 'start_failed':
+                    statusClass = 'status-start-failed';
+                    statusText = '启动失败';
+                    break;
+                case 'maintenance':
+                    statusClass = 'status-maintenance';
+                    statusText = '维护中';
+                    break;
+                default:
+                    statusClass = 'status-stopped';
+                    statusText = '已停止';
+            }
             const maintBtnText = svc.maintenance ? '取消维护' : '停机维护';
             const card = document.createElement('div');
             card.className = 'service-card';
             card.dataset.id = svc.id;
             card.innerHTML = `
                 <div class="card-header"><span class="service-name">${escapeHtml(svc.name)}</span><span class="status-badge ${statusClass}">${statusText}</span></div>
-                <div class="info-row"><span class="info-label">🆔 ID</span><span class="info-value">${escapeHtml(svc.id)}</span></div>
-                <div class="info-row"><span class="info-label">🌐 端口</span><span class="info-value">${svc.port||'未配置'}</span></div>
+                <div class="info-row"><span class="info-label">ID</span><span class="info-value">${escapeHtml(svc.id)}</span></div>
+                <div class="info-row"><span class="info-label">端口</span><span class="info-value">${svc.port||'未配置'}</span></div>
                 <div class="card-actions">
                     <button class="btn btn-start" data-id="${svc.id}">启动</button>
                     <button class="btn btn-stop" data-id="${svc.id}">停止</button>
@@ -405,7 +522,6 @@
             `;
             grid.appendChild(card);
         }
-        // 跨设备停止检测
         const now = Date.now();
         for(let id in lastServiceStates){
             if(lastServiceStates[id]===true && newStates[id]===false){
@@ -423,9 +539,9 @@
                     }
                 }
                 if(isOther){
-                    showAlertModal(`🌐 其他设备 (${otherIp}) 停止了服务“${svc.name}”`);
-                } else if(!isPending && !isRecentSelf && !svc.maintenance){
-                    showAlertModal(`⚠️ 服务意外停止: ${svc.name}\n请检查日志或手动重启。`);
+                    showAlertModal(`其他设备 (${otherIp}) 停止了服务“${svc.name}”`);
+                } else if(!isPending && !isRecentSelf && svc.health !== 'maintenance' && svc.health !== 'stopped'){
+                    showAlertModal(`服务意外停止: ${svc.name}\n请检查日志或手动重启。`);
                 }
             }
         }
@@ -449,10 +565,7 @@
             const data = await res.json();
             if (data.success) { 
                 showToast(data.message, 'success'); 
-                setTimeout(() => {
-                    refreshServices();
-                    refreshMonitor();
-                }, 600);
+                setTimeout(() => { refreshServices(); refreshMonitor(); }, 600);
             } else showAlertModal(data.message);
         });
     }
@@ -464,12 +577,9 @@
             const data = await res.json();
             if(data.success) {
                 showToast(`✅ ${data.message}`,'success');
-                setTimeout(() => {
-                    refreshServices();
-                    refreshMonitor();
-                }, 600);
+                setTimeout(() => { refreshServices(); refreshMonitor(); }, 600);
             } else { 
-                showAlertModal(`❌ 操作失败：\n${data.message}`); 
+                showAlertModal(`操作失败：\n${data.message}`); 
                 if(action==='stop'||action==='restart'){ pendingStopIds.delete(id); stopTimestamps.delete(id); } 
             }
         } catch(err){ 
@@ -478,32 +588,46 @@
         }
     }
     async function showLogs(id){
+        currentLogServiceId = id;
         const modal = document.getElementById('logModal');
         const logContent = document.getElementById('logContent');
         const logTitle = document.getElementById('logTitle');
         const res = await fetch('/api/services');
         const services = await res.json();
         const svc = services.find(s=>s.id===id);
-        logTitle.innerText = `📄 ${svc?.name||id} 日志 (最后15行)`;
+        logTitle.innerText = `${svc?.name||id} 日志 (最后15行)`;
         modal.style.display = 'flex';
+        await refreshLogContent();
+        document.getElementById('clearLogBtn').onclick = async () => {
+            if (confirm('确定要清空此服务的日志文件吗？')) {
+                const clearRes = await fetch(`/api/services/${id}/clear_log`, { method: 'POST' });
+                const clearData = await clearRes.json();
+                if (clearData.success) {
+                    showToast('日志已清空', 'success');
+                    await refreshLogContent();
+                } else {
+                    showAlertModal('清空失败: ' + clearData.message);
+                }
+            }
+        };
+    }
+    async function refreshLogContent() {
+        if (!currentLogServiceId) return;
         try{
-            const logRes = await fetch(`/api/services/${id}/logs?lines=15`);
+            const logRes = await fetch(`/api/services/${currentLogServiceId}/logs?lines=15`);
             const data = await logRes.json();
-            logContent.innerText = data.logs || "(无日志内容)";
+            document.getElementById('logContent').innerText = data.logs || "(无日志内容)";
             setTimeout(scrollLogToBottom,100);
-        }catch(e){ logContent.innerText="读取日志失败"; }
+        }catch(e){ document.getElementById('logContent').innerText="读取日志失败"; }
     }
     async function startAll(){
         const res = await fetch('/api/start_all',{method:'POST'});
         const results = await res.json();
         for(let r of results){
-            if(r.success) showToast(`✅ ${r.name} 启动成功`,'success');
-            else showAlertModal(`❌ ${r.name} 启动失败:\n${r.message}`);
+            if(r.success) showToast(`${r.name} 启动成功`,'success');
+            else showAlertModal(`${r.name} 启动失败:\n${r.message}`);
         }
-        setTimeout(() => {
-            refreshServices();
-            refreshMonitor();
-        }, 600);
+        setTimeout(() => { refreshServices(); refreshMonitor(); }, 600);
     }
     async function stopAll(){
         const listRes = await fetch('/api/services');
@@ -513,16 +637,12 @@
         const stopRes = await fetch('/api/stop_all',{method:'POST'});
         const results = await stopRes.json();
         for(let r of results){
-            if(r.success) showToast(`✅ ${r.name} 已停止`,'success');
-            else{ showToast(`❌ ${r.name} 停止失败`,'error'); }
+            if(r.success) showToast(`${r.name} 已停止`,'success');
+            else{ showToast(`${r.name} 停止失败`,'error'); }
         }
-        setTimeout(() => {
-            refreshServices();
-            refreshMonitor();
-        }, 600);
+        setTimeout(() => { refreshServices(); refreshMonitor(); }, 600);
     }
 
-    // 流量
     async function refreshTrafficCards() {
         const res = await fetch('/api/services');
         const services = await res.json();
@@ -533,7 +653,7 @@
             card.className = 'traffic-card';
             card.innerHTML = `
                 <div class="traffic-card-header">
-                    <span class="traffic-name">📊 ${escapeHtml(svc.name)}</span>
+                    <span class="traffic-name">${escapeHtml(svc.name)}</span>
                     <span class="traffic-current" id="traffic-current-${svc.id}">加载中...</span>
                 </div>
                 <canvas id="traffic-canvas-${svc.id}" class="traffic-canvas" width="400" height="80" style="width:100%; height:80px;"></canvas>
@@ -594,26 +714,47 @@
         ctx.fill();
     }
 
-    // 监控（每3秒，仅当可见时）
     async function refreshMonitor() {
         const monitorTab = document.getElementById('monitor-tab');
         if (monitorTab.style.display !== 'block') return;
         const res = await fetch('/api/services_resources');
         const data = await res.json();
-        let html = '<table style="width:100%; border-collapse:collapse;"><tr><th>服务名称</th><th>状态</th><th>CPU%</th><th>内存(MB)</th></tr>';
+        let html = '<table style="width:100%; border-collapse:collapse;"><thead><tr><th>服务名称</th><th>状态</th><th>CPU%</th><th>内存(MB)</th></tr></thead><tbody>';
         for(let s of data) {
+            let statusIcon = '';
+            let statusText = '';
+            switch(s.health) {
+                case 'running':
+                    statusIcon = '🟢';
+                    statusText = '运行中';
+                    break;
+                case 'crashed':
+                    statusIcon = '🔴';
+                    statusText = '崩溃';
+                    break;
+                case 'start_failed':
+                    statusIcon = '🟡';
+                    statusText = '启动失败';
+                    break;
+                case 'maintenance':
+                    statusIcon = '⚪';
+                    statusText = '维护中';
+                    break;
+                default:
+                    statusIcon = '⚫';
+                    statusText = '已停止';
+            }
             html += `<tr>
                         <td>${escapeHtml(s.name)}</td>
-                        <td>${s.running ? '🟢 运行中' : '⚫ 已停止'}</td>
+                        <td>${statusIcon} ${statusText}</td>
                         <td>${s.running ? s.cpu_percent : '-'}</td>
                         <td>${s.running ? s.mem_mb : '-'}</td>
                      </tr>`;
         }
-        html += '</table>';
+        html += '</tbody></table>';
         document.getElementById('monitorTable').innerHTML = html;
     }
 
-    // 设置（面板设置 + 服务配置）
     async function loadSettings() {
         const res = await fetch('/api/settings');
         const settings = await res.json();
@@ -633,7 +774,6 @@
         else showAlertModal('保存失败');
     }
 
-    // 服务配置管理
     async function loadServiceConfigs() {
         const res = await fetch('/api/service_configs');
         const services = await res.json();
@@ -671,7 +811,6 @@
         }
         container.appendChild(table);
     }
-
     function openServiceModal(service = null) {
         const modal = document.getElementById('serviceModal');
         document.getElementById('serviceModalTitle').innerText = service ? '编辑服务' : '添加服务';
@@ -684,11 +823,9 @@
         document.getElementById('servicePort').value = service ? (service.port || '') : '';
         modal.style.display = 'flex';
     }
-
     function closeServiceModal() {
         document.getElementById('serviceModal').style.display = 'none';
     }
-
     async function saveService() {
         const id = document.getElementById('serviceId').value.trim();
         const name = document.getElementById('serviceName').value.trim();
@@ -699,7 +836,6 @@
             showAlertModal('请填写 ID、名称和启动命令');
             return;
         }
-        // 尝试解析命令为数组或字符串
         let commandParsed;
         try {
             if (command.startsWith('[') && command.endsWith(']')) {
@@ -730,13 +866,11 @@
             showToast(data.message, 'success');
             closeServiceModal();
             loadServiceConfigs();
-            // 刷新服务列表（服务选项卡会重新拉取）
             refreshServices();
         } else {
             showAlertModal(data.message);
         }
     }
-
     async function deleteService(id) {
         if (!confirm(`确定要删除服务 ${id} 吗？该操作会停止服务并删除配置。`)) return;
         const res = await fetch(`/api/service_configs/${id}`, { method: 'DELETE' });
@@ -750,7 +884,6 @@
         }
     }
 
-    // 启动定时器
     function startTimers() {
         if (serviceRefreshTimer) clearInterval(serviceRefreshTimer);
         if (monitorRefreshTimer) clearInterval(monitorRefreshTimer);
@@ -761,24 +894,23 @@
         }, 5000);
         monitorRefreshTimer = setInterval(refreshMonitor, 3000);
         dashboardRefreshTimer = setInterval(() => { 
-            if (document.querySelector('.nav-item.active').dataset.tab === 'dashboard') refreshDashboard(); 
+            if (document.querySelector('.nav-item.active').dataset.tab === 'dashboard') { refreshDashboard(); refreshSensors(); } 
         }, 5000);
         trafficRefreshTimer = setInterval(() => { 
             if (document.querySelector('.nav-item.active').dataset.tab === 'traffic') updateAllTraffic(); 
         }, 5000);
     }
 
-    // 初始化
     async function init() {
         await fetchMyIp();
         startTimers();
         await refreshDashboard();
+        await refreshSensors();
         await refreshServices();
         await refreshTrafficCards();
         await loadSettings();
         await loadServiceConfigs();
         await initTrendChart();
-        // 事件绑定
         document.getElementById('startAllBtn').onclick = startAll;
         document.getElementById('stopAllBtn').onclick = stopAll;
         document.getElementById('saveSettingsBtn').onclick = saveSettings;
