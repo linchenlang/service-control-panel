@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify, render_template
-from config import SERVICES, config
+from config import SERVICES, config, LOGS_DIR
 from service_manager import (
     start_service, stop_service, restart_service, set_maintenance,
     get_status, get_service_health
@@ -10,6 +10,7 @@ from monitor import (
 )
 from traffic import traffic_history, traffic_lock
 from utils import get_operation_history, get_local_ip, log_operation
+from collections import deque
 import time
 import json
 from pathlib import Path
@@ -18,6 +19,10 @@ import socket
 import re
 import os
 import subprocess
+import traceback
+import logging
+
+logger = logging.getLogger(__name__)
 
 api = Blueprint('api', __name__)
 
@@ -147,19 +152,65 @@ def api_sensors():
 
 @api.route("/api/services/<sid>/logs", methods=["GET"])
 def api_logs(sid):
-    lines = request.args.get("lines", 15, type=int)
-    log_file = LOGS_DIR / f"{sid}.log"
-    if not log_file.exists():
-        return jsonify({"logs": ""})
-    with open(log_file, "r", encoding="utf-8", errors="ignore") as f:
-        all_lines = f.readlines()
-        last_lines = all_lines[-lines:] if all_lines else []
-        return jsonify({"logs": "".join(last_lines)})
+    try:
+        LOGS_DIR.mkdir(exist_ok=True)
+        lines = request.args.get("lines", 15, type=int)
+        safe_sid = sid.replace("/", "_").replace("\\", "_")
+        log_file = LOGS_DIR / f"{safe_sid}.log"
+
+        if not log_file.exists():
+            error_msg = f"日志文件不存在: {log_file}"
+            logger.error(error_msg)
+            return jsonify({"error": error_msg, "logs": ""}), 404
+
+        # 智能检测编码并读取
+        def read_with_encoding(file_path, line_limit):
+            # 尝试多种编码顺序
+            encodings = ['utf-8', 'gbk', 'gb2312', 'latin-1', 'cp1252']
+            # 首先尝试用 chardet 检测（如果可用）
+            try:
+                import chardet
+                with open(file_path, 'rb') as f:
+                    raw_data = f.read(1024 * 10)  # 读取前10KB用于检测
+                    result = chardet.detect(raw_data)
+                    if result['encoding'] and result['confidence'] > 0.5:
+                        encodings.insert(0, result['encoding'])
+            except ImportError:
+                pass
+
+            for enc in encodings:
+                try:
+                    with open(file_path, 'r', encoding=enc, errors='replace') as f:
+                        all_lines = f.readlines()
+                        last_lines = all_lines[-line_limit:] if all_lines else []
+                        return "".join(last_lines), None
+                except UnicodeDecodeError:
+                    continue
+            # 所有编码都失败，降级为二进制读取并强制替换
+            with open(file_path, 'rb') as f:
+                all_lines = f.readlines()
+                last_lines = all_lines[-line_limit:] if all_lines else []
+                decoded = [line.decode('utf-8', errors='replace') for line in last_lines]
+                return "".join(decoded), "编码无法识别，已强制替换"
+
+        content, warning = read_with_encoding(log_file, lines)
+        response = {"logs": content, "error": warning}
+        return jsonify(response)
+    except PermissionError as e:
+        error_msg = f"权限不足，无法读取日志文件: {log_file if 'log_file' in locals() else sid}. 请检查文件权限。"
+        logger.error(error_msg, exc_info=True)
+        return jsonify({"error": error_msg, "logs": ""}), 500
+    except Exception as e:
+        error_msg = f"读取日志失败: {str(e)} (文件: {log_file if 'log_file' in locals() else sid})"
+        logger.error(error_msg, exc_info=True)
+        return jsonify({"error": error_msg, "logs": ""}), 500
 
 @api.route("/api/services/<sid>/clear_log", methods=["POST"])
 def api_clear_log(sid):
-    log_file = LOGS_DIR / f"{sid}.log"
     try:
+        LOGS_DIR.mkdir(exist_ok=True)
+        safe_sid = sid.replace("/", "_").replace("\\", "_")
+        log_file = LOGS_DIR / f"{safe_sid}.log"
         if log_file.exists():
             log_file.write_text("", encoding="utf-8")
             with traffic_lock:
@@ -171,6 +222,7 @@ def api_clear_log(sid):
         else:
             return jsonify({"success": False, "message": "日志文件不存在"}), 404
     except Exception as e:
+        traceback.print_exc()
         return jsonify({"success": False, "message": str(e)}), 500
 
 @api.route("/api/services/<sid>/start", methods=["POST"])
