@@ -179,6 +179,51 @@ body {
     margin: 0.2rem 0;
 }
 
+/* 磁盘状态区域 - 卡片独占一行，宽度100% */
+.disks-section {
+    margin: 1.5rem 0;
+}
+.disks-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+.disk-card {
+    background: rgba(255,255,255,0.7);
+    backdrop-filter: blur(8px);
+    border-radius: 1rem;
+    padding: 0.8rem 1.2rem;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    width: 100%;
+}
+.disk-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 0.6rem;
+    font-size: 0.95rem;
+}
+.disk-name {
+    font-weight: 600;
+    color: #1e2b3c;
+}
+.disk-usage {
+    font-family: monospace;
+    font-size: 0.85rem;
+    color: #2c3e4e;
+}
+.progress-bar-container {
+    background-color: rgba(0,0,0,0.1);
+    border-radius: 20px;
+    height: 16px;
+    overflow: hidden;
+}
+.progress-bar {
+    height: 100%;
+    border-radius: 20px;
+    transition: width 0.3s ease;
+}
+
 /* 趋势图区域 */
 .trend-section {
     margin-top: 1rem;
@@ -581,31 +626,4 @@ body {
     .sensor-right { margin-left: 0; margin-top: 0.5rem; }
     .two-columns { flex-direction: column; }
     .ports-grid { grid-template-columns: repeat(3, 1fr); }
-}
-
-/* 自定义滚动条样式（适用于 WebKit 浏览器） */
-::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-}
-
-::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.05);
-    border-radius: 10px;
-}
-
-::-webkit-scrollbar-thumb {
-    background: rgba(58, 110, 165, 0.6);
-    border-radius: 10px;
-    transition: background 0.2s;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: rgba(58, 110, 165, 0.9);
-}
-
-/* Firefox 滚动条样式（较新版本支持） */
-* {
-    scrollbar-width: thin;
-    scrollbar-color: rgba(58, 110, 165, 0.6) rgba(0, 0, 0, 0.05);
 }
