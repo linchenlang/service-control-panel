@@ -12,7 +12,7 @@ let currentDisk = null;
 let serviceRefreshTimer = null;
 let monitorRefreshTimer = null;
 let trafficRefreshTimer = null;
-let sensorsRefreshTimer = null;  // 用于网络/IP的定时器
+let sensorsRefreshTimer = null;  // 用于网络/IP/磁盘的定时器
 let trendRefreshTimer = null;
 let currentLogServiceId = null;
 
@@ -47,7 +47,7 @@ function switchTab(tabId) {
     if (tabId === 'traffic') { refreshTrafficCards(); updateAllTraffic(); }
     if (tabId === 'monitor') refreshMonitor();
     if (tabId === 'oplogs') loadOperationHistory();
-    if (tabId === 'dashboard') { refreshSensors(); updateNetworkCard(); updateIpCard(); }
+    if (tabId === 'dashboard') { refreshSensors(); updateNetworkCard(); updateIpCard(); updateDisks(); }
     if (tabId === 'settings') { loadSettings(); loadServiceConfigs(); }
 }
 
@@ -116,12 +116,11 @@ async function updateNetworkCard() {
     container.innerHTML = netHtml;
 }
 
-// 更新 IP 地址卡片（右侧，使用 ipconfig 详细数据，并增加查看详情按钮）
+// 更新 IP 地址卡片（右侧，使用 ipconfig 详细数据）
 async function updateIpCard() {
     const container = document.getElementById('ipCardContainer');
     if (!container) return;
 
-    // 获取公网 IP
     let publicIp = '加载中...';
     try {
         const publicRes = await fetch('/api/public_ip');
@@ -131,7 +130,6 @@ async function updateIpCard() {
         publicIp = '获取失败';
     }
 
-    // 请求详细的 IP 地址信息
     let addresses = [];
     try {
         const res = await fetch('/api/ip_detailed');
@@ -139,7 +137,6 @@ async function updateIpCard() {
         if (data.success && data.addresses) {
             addresses = data.addresses;
         } else {
-            // 回退到 sensors 方式
             const sensorRes = await fetch('/api/sensors');
             const sensorData = await sensorRes.json();
             if (sensorData.network_interfaces) {
@@ -156,7 +153,6 @@ async function updateIpCard() {
         console.error('获取IP地址失败', e);
     }
 
-    // 生成紧凑的列表：公网出口单独一行，然后每个地址一行，并添加查看详情按钮
     let html = `<div class="sensor-left" style="width:100%;">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <div class="sensor-title">IP地址</div>
@@ -172,14 +168,10 @@ async function updateIpCard() {
     html += `</div>`;
     container.innerHTML = html;
 
-    // 绑定查看详细信息按钮事件
     const detailBtn = document.getElementById('showIpconfigDetailBtn');
-    if (detailBtn) {
-        detailBtn.onclick = showIpconfigDetail;
-    }
+    if (detailBtn) detailBtn.onclick = showIpconfigDetail;
 }
 
-// 显示 ipconfig /all 详细输出
 async function showIpconfigDetail() {
     const modal = document.getElementById('ipconfigModal');
     const outputDiv = document.getElementById('ipconfigOutput');
@@ -195,6 +187,45 @@ async function showIpconfigDetail() {
         }
     } catch(e) {
         outputDiv.innerText = '请求失败: ' + e.message;
+    }
+}
+
+// 更新磁盘状态
+async function updateDisks() {
+    const container = document.getElementById('disksGrid');
+    if (!container) return;
+    try {
+        const res = await fetch('/api/dashboard_stats');
+        const data = await res.json();
+        const disks = data.disks || [];
+        if (disks.length === 0) {
+            container.innerHTML = '<div class="disk-card">未获取到磁盘信息</div>';
+            return;
+        }
+        let html = '<div class="disks-grid">';
+        for (let disk of disks) {
+            const percent = disk.percent || 0;
+            let barColor = '#2ecc71'; // 绿
+            if (percent > 90) barColor = '#e74c3c'; // 红
+            else if (percent > 70) barColor = '#f39c12'; // 黄
+            const usedGb = disk.used_gb || 0;
+            const totalGb = disk.total_gb || 0;
+            html += `
+                <div class="disk-card">
+                    <div class="disk-header">
+                        <span class="disk-name">${escapeHtml(disk.mount)}</span>
+                        <span class="disk-usage">${usedGb} GB / ${totalGb} GB (${percent}%)</span>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" style="width: ${percent}%; background-color: ${barColor};"></div>
+                    </div>
+                </div>
+            `;
+        }
+        html += '</div>';
+        container.innerHTML = html;
+    } catch(e) {
+        console.error('更新磁盘状态失败', e);
     }
 }
 
@@ -214,21 +245,18 @@ async function refreshSensors() {
     const sensorsGrid = document.getElementById('sensorsGrid');
     sensorsGrid.innerHTML = '';
 
-    // CPU
     const cpuCard = document.createElement('div');
     cpuCard.className = 'sensor-card';
     cpuCard.innerHTML = `<div class="sensor-left"><div class="sensor-title">CPU</div><div class="sensor-value">${escapeHtml(cpuData.cpu.model || 'Unknown')}</div><div class="sensor-detail">核心: ${cpuData.cpu.physical_cores || '-'} 物理 / ${cpuData.cpu.logical_cores || '-'} 逻辑</div><div class="sensor-detail">占用: ${cpuData.cpu.percent || 0}%</div><div class="sensor-detail" id="cpuFreqDetail" style="${sensorData.cpu_freq ? '' : 'display:none'}">频率: ${sensorData.cpu_freq ? sensorData.cpu_freq.current + ' MHz' : ''}</div></div><div class="sensor-right"><canvas id="cpuGauge" width="100" height="100" class="small-gauge"></canvas></div>`;
     sensorsGrid.appendChild(cpuCard);
     drawSmallGauge('cpuGauge', cpuData.cpu.percent || 0);
 
-    // 内存
     const memCard = document.createElement('div');
     memCard.className = 'sensor-card';
     memCard.innerHTML = `<div class="sensor-left"><div class="sensor-title">内存</div><div class="sensor-detail">总计: ${cpuData.memory.total_gb || 0} GB</div><div class="sensor-detail">已用: ${cpuData.memory.used_gb || 0} GB</div><div class="sensor-detail">占用: ${cpuData.memory.percent || 0}%</div></div><div class="sensor-right"><canvas id="memGauge" width="100" height="100" class="small-gauge"></canvas></div>`;
     sensorsGrid.appendChild(memCard);
     drawSmallGauge('memGauge', cpuData.memory.percent || 0);
 
-    // 温度
     if (sensorData.temperatures) {
         const tempCard = document.createElement('div');
         tempCard.className = 'sensor-card';
@@ -238,7 +266,6 @@ async function refreshSensors() {
         drawSmallGauge('tempGauge', tempPercent);
     }
 
-    // 电池
     if (sensorData.battery) {
         const batteryCard = document.createElement('div');
         batteryCard.className = 'sensor-card';
@@ -251,7 +278,6 @@ async function refreshSensors() {
         drawSmallGauge('batteryGauge', percent, batteryColor);
     }
 
-    // 风扇
     if (sensorData.fans) {
         const fanCard = document.createElement('div');
         fanCard.className = 'sensor-card';
@@ -259,7 +285,6 @@ async function refreshSensors() {
         sensorsGrid.appendChild(fanCard);
     }
 
-    // 系统信息
     if (sensorData.uptime || sensorData.process_count) {
         const sysCard = document.createElement('div');
         sysCard.className = 'sensor-card';
@@ -412,12 +437,22 @@ async function showLogs(id){
 }
 async function refreshLogContent() {
     if (!currentLogServiceId) return;
-    try{
-        const logRes = await fetch(`/api/services/${currentLogServiceId}/logs?lines=15`);
-        const data = await logRes.json();
-        document.getElementById('logContent').innerText = data.logs || "(无日志内容)";
-        setTimeout(scrollLogToBottom,100);
-    }catch(e){ document.getElementById('logContent').innerText="读取日志失败"; }
+    const logContent = document.getElementById('logContent');
+    logContent.innerText = "加载中...";
+    try {
+        const response = await fetch(`/api/services/${currentLogServiceId}/logs?lines=15`);
+        const data = await response.json();
+        if (!response.ok || data.error) {
+            console.error("日志加载错误:", data.error || `HTTP ${response.status}`);
+            logContent.innerText = `❌ 读取失败: ${data.error || '未知错误'}\n\n请检查：\n- 日志文件是否存在\n- 文件权限是否可读\n- 是否被其他程序独占`;
+        } else {
+            logContent.innerText = data.logs || "(无日志内容)";
+        }
+        setTimeout(scrollLogToBottom, 100);
+    } catch (e) {
+        console.error("请求日志异常:", e);
+        logContent.innerText = `❌ 网络请求失败: ${e.message}\n请检查面板服务是否正常运行。`;
+    }
 }
 async function startAll(){
     const res = await fetch('/api/start_all',{method:'POST'});
@@ -515,7 +550,7 @@ async function refreshMonitor() {
         }
         html += `<tr><td>${escapeHtml(s.name)}</td><td>${statusIcon} ${statusText}</td><td>${s.running ? s.cpu_percent : '-'}</td><td>${s.running ? s.mem_mb : '-'}</td></tr>`;
     }
-    html += '</tbody></tr>';
+    html += '</tbody></table>';
     document.getElementById('monitorTable').innerHTML = html;
 }
 
@@ -598,13 +633,6 @@ async function deleteService(id) {
     else showAlertModal(data.message);
 }
 
-// 手动刷新网络和IP信息
-async function manualRefreshNetworkIp() {
-    await updateNetworkCard();
-    await updateIpCard();
-    showToast('网络/IP信息已刷新', 'success');
-}
-
 function startTimers() {
     if (serviceRefreshTimer) clearInterval(serviceRefreshTimer);
     if (monitorRefreshTimer) clearInterval(monitorRefreshTimer);
@@ -613,14 +641,15 @@ function startTimers() {
     serviceRefreshTimer = setInterval(() => { if (document.querySelector('.nav-item.active').dataset.tab === 'services') refreshServices(); }, 5000);
     monitorRefreshTimer = setInterval(refreshMonitor, 3000);
     trafficRefreshTimer = setInterval(() => { if (document.querySelector('.nav-item.active').dataset.tab === 'traffic') updateAllTraffic(); }, 5000);
-    // 网络和IP信息每 300 秒（5分钟）自动刷新一次
+    // 网络、IP、磁盘每 60 秒自动刷新一次
     sensorsRefreshTimer = setInterval(() => {
         if (document.querySelector('.nav-item.active').dataset.tab === 'dashboard') {
             refreshSensors();
             updateNetworkCard();
             updateIpCard();
+            updateDisks();
         }
-    }, 300000);
+    }, 1000);
 }
 
 async function init() {
@@ -629,6 +658,7 @@ async function init() {
     await refreshSensors();
     await updateNetworkCard();
     await updateIpCard();
+    await updateDisks();
     await refreshServices();
     await refreshTrafficCards();
     await loadSettings();
@@ -642,9 +672,6 @@ async function init() {
     document.getElementById('switchToNetBtn').onclick = () => { currentTrendMode = 'net'; document.getElementById('switchToNetBtn').classList.add('active'); document.getElementById('switchToDiskBtn').classList.remove('active'); document.getElementById('diskSelect').style.display = 'none'; fetchNetHistory(); };
     document.getElementById('switchToDiskBtn').onclick = () => { currentTrendMode = 'disk'; document.getElementById('switchToDiskBtn').classList.add('active'); document.getElementById('switchToNetBtn').classList.remove('active'); document.getElementById('diskSelect').style.display = 'block'; fetchDiskHistory(); };
     document.querySelectorAll('.nav-item').forEach(item => { item.addEventListener('click', () => switchTab(item.dataset.tab)); });
-    // 手动刷新按钮
-    const refreshBtn = document.getElementById('refreshNetworkIpBtn');
-    if (refreshBtn) refreshBtn.onclick = manualRefreshNetworkIp;
     window.onclick = function(e){
         if(e.target === document.getElementById('logModal')) closeModal();
         if(e.target === document.getElementById('alertModal')) closeAlertModal();
