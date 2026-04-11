@@ -36,9 +36,18 @@ def start_service(service, source_ip="unknown"):
 
     try:
         if os.name == 'nt':
+            # Windows 下以共享读/写模式打开日志文件，允许其他进程读取
+            import msvcrt
+            # 确保目录存在
+            log_file.parent.mkdir(parents=True, exist_ok=True)
+            # 以追加模式打开，允许共享读
+            log_fd = os.open(str(log_file), os.O_APPEND | os.O_CREAT | os.O_WRONLY, 0o666)
+            # 允许其他进程读写
+            msvcrt.setmode(log_fd, os.O_BINARY)
+            log_handle = os.fdopen(log_fd, 'a', encoding='utf-8')
             proc = subprocess.Popen(
                 cmd, cwd=cwd, env=env,
-                stdout=log_file.open("a", encoding="utf-8"),
+                stdout=log_handle,
                 stderr=subprocess.STDOUT,
                 creationflags=subprocess.CREATE_NEW_PROCESS_GROUP
             )
