@@ -25,12 +25,13 @@
         </div>
         <div class="sensors-grid" id="sensorsGrid"></div>
 
-        <!-- 工具栏：刷新按钮和查看详细信息按钮 -->
-        <div style="display: flex; justify-content: flex-end; margin-bottom: 0.5rem;">
-            <button id="refreshNetworkIpBtn" class="small-btn" style="background: #3a6ea5;">刷新网络/IP</button>
+        <!-- 磁盘状态区域 -->
+        <div class="disks-section" style="margin: 1.5rem 0;">
+            <h3 style="margin-bottom: 0.8rem;">磁盘状态</h3>
+            <div id="disksGrid" class="disks-grid"></div>
         </div>
 
-        <!-- 两个独立的卡片：网络接口 + IP地址 -->
+        <!-- 网络与IP卡片 -->
         <div class="two-columns">
             <div id="networkCardContainer" class="sensor-card" style="flex: 1; margin-right: 0.75rem;"></div>
             <div id="ipCardContainer" class="sensor-card" style="flex: 1; margin-left: 0.75rem;"></div>
