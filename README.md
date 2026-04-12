@@ -79,32 +79,31 @@ python app.py
 面板默认不输出访问日志，仅当发生错误时才有控制台输出。
 
 
-
 ## 相关图片展示
 
-<img width="1919" height="1079" alt="屏幕截图 2026-04-12 202005" src="https://github.com/user-attachments/assets/a2127acf-fdeb-4d59-adb3-1e19bed6feda" />
-
-<img width="1919" height="1079" alt="屏幕截图 2026-04-12 201949" src="https://github.com/user-attachments/assets/e97eb246-db0c-4b0b-b0c5-660757745756" />
-
-<img width="1919" height="1079" alt="屏幕截图 2026-04-12 201938" src="https://github.com/user-attachments/assets/54cff05c-9fd2-430e-a681-18e10fd5e7f8" />
-
-<img width="1919" height="1079" alt="屏幕截图 2026-04-12 201925" src="https://github.com/user-attachments/assets/f2518247-2c5e-4d64-89b0-c34a98c45cbf" />
-
-<img width="1919" height="1079" alt="屏幕截图 2026-04-12 201913" src="https://github.com/user-attachments/assets/c612389e-dccb-4053-8b14-c07b267f20c3" />
-
-<img width="1919" height="1079" alt="屏幕截图 2026-04-12 201903" src="https://github.com/user-attachments/assets/65898fe8-02c7-4d88-972d-823e9ce559c0" />
-
-<img width="1919" height="1079" alt="屏幕截图 2026-04-12 201850" src="https://github.com/user-attachments/assets/91f211ae-b885-4f95-9fe4-32e8c29e7a0e" />
-
-<img width="1919" height="1079" alt="屏幕截图 2026-04-12 201843" src="https://github.com/user-attachments/assets/8612dc2e-4592-42fe-b21b-7c1de3579a53" />
-
-<img width="1915" height="1079" alt="屏幕截图 2026-04-12 201835" src="https://github.com/user-attachments/assets/06b4ba4e-4c12-486d-be1d-8c02704e4108" />
-
-<img width="1919" height="1079" alt="屏幕截图 2026-04-12 201824" src="https://github.com/user-attachments/assets/338ebb75-2676-4065-9442-c20eca54f29a" />
+<img width="1919" height="1079" alt="屏幕截图 2026-04-12 201756" src="https://github.com/user-attachments/assets/c6926592-d8e2-428d-a0fb-d86583e9f061" />
 
 <img width="1919" height="1079" alt="屏幕截图 2026-04-12 201807" src="https://github.com/user-attachments/assets/7bd16e00-272b-434e-900b-74fbaf1331ee" />
 
-<img width="1919" height="1079" alt="屏幕截图 2026-04-12 201756" src="https://github.com/user-attachments/assets/c6926592-d8e2-428d-a0fb-d86583e9f061" />
+<img width="1919" height="1079" alt="屏幕截图 2026-04-12 201824" src="https://github.com/user-attachments/assets/338ebb75-2676-4065-9442-c20eca54f29a" />
+
+<img width="1915" height="1079" alt="屏幕截图 2026-04-12 201835" src="https://github.com/user-attachments/assets/06b4ba4e-4c12-486d-be1d-8c02704e4108" />
+
+<img width="1919" height="1079" alt="屏幕截图 2026-04-12 201843" src="https://github.com/user-attachments/assets/8612dc2e-4592-42fe-b21b-7c1de3579a53" />
+
+<img width="1919" height="1079" alt="屏幕截图 2026-04-12 201850" src="https://github.com/user-attachments/assets/91f211ae-b885-4f95-9fe4-32e8c29e7a0e" />
+
+<img width="1919" height="1079" alt="屏幕截图 2026-04-12 201903" src="https://github.com/user-attachments/assets/65898fe8-02c7-4d88-972d-823e9ce559c0" />
+
+<img width="1919" height="1079" alt="屏幕截图 2026-04-12 201925" src="https://github.com/user-attachments/assets/f2518247-2c5e-4d64-89b0-c34a98c45cbf" />
+
+<img width="1919" height="1079" alt="屏幕截图 2026-04-12 201938" src="https://github.com/user-attachments/assets/54cff05c-9fd2-430e-a681-18e10fd5e7f8" />
+
+<img width="1919" height="1079" alt="屏幕截图 2026-04-12 201949" src="https://github.com/user-attachments/assets/e97eb246-db0c-4b0b-b0c5-660757745756" />
+
+<img width="1919" height="1079" alt="屏幕截图 2026-04-12 201949" src="https://github.com/user-attachments/assets/e97eb246-db0c-4b0b-b0c5-660757745756" />
+
+<img width="1919" height="1079" alt="屏幕截图 2026-04-12 202005" src="https://github.com/user-attachments/assets/a2127acf-fdeb-4d59-adb3-1e19bed6feda" />
 
 
 ## API 接口
