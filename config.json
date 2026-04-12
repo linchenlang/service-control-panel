@@ -1,0 +1,21 @@
+{
+  "panel_host": "0.0.0.0",
+  "panel_port": 8888,
+  "logs_dir": "./logs",
+  "services": [
+    {
+      "id": "example_app",             #此处自己填写（服务ID）
+      "name": "示例应用",                #此处自己填写（服务名称）
+      "command": ["python3", "app.py"],            #此处自己填写（运行方式、代码）
+      "cwd": "./apps/example_app",                      #此处自己填写（服务绝对或相对目录）
+      "port": 3000                             #此处自己填写（服务端口）
+    },
+    {
+      "id": "another_service",                #此处自己填写（服务ID）（同上）
+      "name": "另一个服务",                    #此处自己填写（服务名称）（同上）
+      "command": "node server.js",                      #此处自己填写（运行方式、代码）（同上）
+      "cwd": "./apps/another_service",                 #此处自己填写（服务绝对或相对目录）（同上）
+      "port": 5000                             #此处自己填写（服务端口）（同上）
+    }
+  ]
+}
