@@ -1,7 +1,7 @@
 import json
 import os
 from pathlib import Path
-from dotenv import load_dotenv  # 需要安装 python-dotenv
+from dotenv import load_dotenv
 
 # 加载 .env 文件
 load_dotenv()
@@ -29,7 +29,7 @@ DEFAULT_DEPLOYMENT = {
     "https_enabled": False,
     "allow_external_access": False,
     "auto_ban_ip": False,
-    "risk_check_interval": 60,
+    "risk_check_interval": 10,
     "admin_email": "",
     "notes": "",
     "os_type": "",
@@ -59,12 +59,35 @@ if MAINTENANCE_FILE.exists():
 else:
     maintenance = {}
 
-# ---------- AI 助手配置（从环境变量读取） ----------
+# ---------- AI 助手配置（支持多模型） ----------
+def load_ai_models():
+    """加载多模型配置，返回模型列表，每个模型包含 name, key, url, model"""
+    models_json = os.getenv("AI_MODELS", "")
+    if models_json:
+        try:
+            models = json.loads(models_json)
+            if isinstance(models, list) and len(models) > 0:
+                return models
+        except json.JSONDecodeError:
+            print("警告: AI_MODELS 格式错误，使用单模型配置")
+    # 回退到单模型配置
+    single_model = {
+        "name": os.getenv("AI_MODEL", "glm-4-flash"),
+        "key": os.getenv("AI_API_KEY", ""),
+        "url": os.getenv("AI_API_URL", "https://open.bigmodel.cn/api/paas/v4/chat/completions"),
+        "model": os.getenv("AI_MODEL", "glm-4-flash")
+    }
+    return [single_model] if single_model["key"] else []
+
+AI_MODELS = load_ai_models()
+# 默认选中第一个模型
+DEFAULT_AI_MODEL = AI_MODELS[0]["name"] if AI_MODELS else None
+
+# 单模型兼容（供其他代码引用）
 AI_API_KEY = os.getenv("AI_API_KEY", "")
-AI_API_URL = "https://open.bigmodel.cn/api/paas/v4/chat/completions"
+AI_API_URL = os.getenv("AI_API_URL", "https://open.bigmodel.cn/api/paas/v4/chat/completions")
 AI_HISTORY_FILE = Path("./ai_chat_history.json")
 AI_MAX_HISTORY = 40
 
-# 检查 AI 密钥是否配置
-if not AI_API_KEY:
-    print("警告: 未设置 AI_API_KEY 环境变量，AI 助手功能将不可用。请在项目根目录创建 .env 文件并填写。")
+if not AI_API_KEY and not AI_MODELS:
+    print("警告: 未设置 AI_API_KEY 或 AI_MODELS 环境变量，AI 助手功能将不可用。请在项目根目录创建 .env 文件并填写。")
