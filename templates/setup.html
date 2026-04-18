@@ -5,6 +5,175 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>面板初始配置向导</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            background: linear-gradient(145deg, #fff5f3 0%, #ffece8 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .wizard-overlay {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+        }
+        .wizard-container {
+            max-width: 800px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(12px);
+            border-radius: 2rem;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        .wizard-header {
+            background: var(--sakura-deep, #e3a09a);
+            color: var(--sakura-text, #4a2e2a);
+            padding: 2rem;
+            text-align: center;
+        }
+        .wizard-header h1 {
+            font-size: 1.8rem;
+            margin-bottom: 0.5rem;
+        }
+        .wizard-header p {
+            opacity: 0.85;
+            font-size: 0.9rem;
+        }
+        .wizard-steps {
+            display: flex;
+            justify-content: space-between;
+            padding: 1rem 2rem;
+            background: rgba(0, 0, 0, 0.03);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+        .step {
+            flex: 1;
+            text-align: center;
+            padding: 0.5rem;
+            color: #94a3b8;
+            position: relative;
+            font-weight: 500;
+        }
+        .step.active {
+            color: var(--sakura-darker, #c97c74);
+            font-weight: bold;
+        }
+        .step.done {
+            color: #38a169;
+        }
+        .step:not(:last-child):after {
+            content: '';
+            position: absolute;
+            right: -10%;
+            top: 50%;
+            width: 20%;
+            height: 2px;
+            background: #e2e8f0;
+        }
+        .step.done:not(:last-child):after {
+            background: #38a169;
+        }
+        .wizard-step {
+            padding: 2rem;
+        }
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #2d3748;
+        }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 0.6rem;
+            border-radius: 0.75rem;
+            border: 1px solid #e2e8f0;
+            background: white;
+            transition: 0.2s;
+        }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            border-color: var(--sakura-deep);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(227, 160, 154, 0.2);
+        }
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin: 0.5rem 0;
+        }
+        .checkbox-group input {
+            width: 1.2rem;
+            height: 1.2rem;
+            margin: 0;
+        }
+        .checkbox-group label {
+            margin: 0;
+            font-weight: normal;
+        }
+        .hint {
+            font-size: 0.8rem;
+            color: #718096;
+            margin-top: 0.3rem;
+        }
+        .summary-box {
+            background: #f1f5f9;
+            border-radius: 1rem;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .step-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 2rem;
+        }
+        .btn-primary, .btn-secondary {
+            padding: 0.6rem 1.5rem;
+            border-radius: 2rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.2s;
+            border: none;
+        }
+        .btn-primary {
+            background: var(--sakura-deep);
+            color: var(--sakura-text);
+        }
+        .btn-primary:hover {
+            background: var(--sakura-darker);
+            color: white;
+            transform: translateY(-2px);
+        }
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #1e293b;
+        }
+        .btn-secondary:hover {
+            background: #cbd5e0;
+        }
+        .error {
+            color: #e53e3e;
+            font-size: 0.8rem;
+            margin-top: 0.3rem;
+        }
+        .success {
+            color: #38a169;
+            text-align: center;
+            padding: 1rem;
+        }
+        @media (max-width: 640px) {
+            .wizard-container { margin: 1rem; }
+            .wizard-step { padding: 1.5rem; }
+        }
+    </style>
 </head>
 <body>
 <div class="wizard-overlay">
@@ -14,46 +183,87 @@
             <p>让我们花一分钟完成基础设置</p>
         </div>
 
-        <!-- 步骤指示器 -->
         <div class="wizard-steps">
             <div class="step active" data-step="1">1. 部署环境</div>
-            <div class="step" data-step="2">2. 安全选项</div>
+            <div class="step" data-step="2">2. 安全与高级</div>
             <div class="step" data-step="3">3. 完成</div>
         </div>
 
-        <form id="setupForm">
+        <form id="setupForm" novalidate>
             <!-- 步骤1：部署环境 -->
             <div class="wizard-step" id="step1">
                 <div class="form-group">
-                    <label>您的服务器部署在什么环境？</label>
+                    <label>部署环境</label>
                     <select id="environment" required>
                         <option value="intranet">内网环境（仅内部访问，无公网IP）</option>
                         <option value="internet">公网环境（有公网IP，对外提供服务）</option>
                     </select>
-                    <div class="hint">这个选择会影响风险检测的建议（例如内网不会提醒防火墙未开启）。</div>
+                    <div class="hint">影响风险检测建议（内网不会提醒防火墙未开启等）。</div>
                 </div>
                 <div class="form-group" id="publicIpGroup">
-                    <label><input type="checkbox" id="hasPublicIp"> 服务器拥有公网IP地址</label>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="hasPublicIp">
+                        <label>服务器拥有公网IP地址</label>
+                    </div>
                 </div>
                 <div class="form-group">
-                    <label><input type="checkbox" id="allowExternal"> 允许外部网络直接访问服务</label>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="allowExternal">
+                        <label>允许外部网络直接访问服务</label>
+                    </div>
                     <div class="hint">如果您有公网IP且希望外部访问，请勾选。</div>
+                </div>
+                <div class="form-group">
+                    <label>操作系统类型</label>
+                    <select id="osType">
+                        <option value="">自动检测</option>
+                        <option value="windows">Windows</option>
+                        <option value="linux">Linux</option>
+                        <option value="macos">macOS</option>
+                    </select>
+                    <div class="hint">帮助AI和风险检测提供更精准的建议。</div>
                 </div>
             </div>
 
-            <!-- 步骤2：安全选项 -->
+            <!-- 步骤2：安全与高级 -->
             <div class="wizard-step" style="display:none;" id="step2">
                 <div class="form-group">
-                    <label><input type="checkbox" id="firewallEnabled" checked> 防火墙已开启并正确配置</label>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="firewallEnabled" checked>
+                        <label>防火墙已开启并正确配置</label>
+                    </div>
                 </div>
                 <div class="form-group">
-                    <label><input type="checkbox" id="httpsEnabled"> 已启用HTTPS/SSL加密</label>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="httpsEnabled">
+                        <label>已启用HTTPS/SSL加密</label>
+                    </div>
                     <div class="hint">强烈建议公网环境启用。</div>
+                </div>
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="productionMode">
+                        <label>生产环境模式</label>
+                    </div>
+                    <div class="hint">启用后风险检测会将中/低风险提升为高风险。</div>
+                </div>
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="strictMode">
+                        <label>严格模式</label>
+                    </div>
+                    <div class="hint">更严格的风险阈值（磁盘<70%，CPU<60%等）。</div>
+                </div>
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="monitorNetworkTraffic" checked>
+                        <label>监控网络流量异常</label>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label>风险检测间隔（秒）</label>
                     <input type="number" id="riskInterval" value="60" min="30" max="300" step="10">
-                    <div class="hint">每隔多少秒自动扫描一次系统风险。</div>
+                    <div class="hint">建议60秒以上，过短会消耗系统资源。</div>
                 </div>
                 <div class="form-group">
                     <label>管理员邮箱（可选，用于未来告警）</label>
@@ -72,7 +282,10 @@
                     <div id="summaryContent"></div>
                 </div>
                 <div class="form-group">
-                    <label><input type="checkbox" id="agreeTerms" required> 我已确认以上配置正确</label>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="agreeTerms" required>
+                        <label>我已确认以上配置正确</label>
+                    </div>
                 </div>
             </div>
 
@@ -117,7 +330,6 @@
         for (let s of steps) {
             stepDivs[s].style.display = s === step ? 'block' : 'none';
         }
-        // 更新步骤指示器样式
         stepIndicators.forEach(ind => {
             const stepNum = parseInt(ind.dataset.step);
             if (stepNum === step) ind.classList.add('active');
@@ -130,12 +342,8 @@
     }
 
     function nextStep() {
-        if (currentStep === 1) {
-            // 可选验证
-            showStep(2);
-        } else if (currentStep === 2) {
-            showStep(3);
-        }
+        if (currentStep === 1) showStep(2);
+        else if (currentStep === 2) showStep(3);
     }
 
     function prevStep() {
@@ -147,8 +355,12 @@
         const env = document.getElementById('environment').value === 'intranet' ? '内网环境' : '公网环境';
         const hasPublic = document.getElementById('hasPublicIp').checked ? '是' : '否';
         const allowExternal = document.getElementById('allowExternal').checked ? '是' : '否';
+        const osType = document.getElementById('osType').value || '自动检测';
         const firewall = document.getElementById('firewallEnabled').checked ? '已开启' : '未开启';
         const https = document.getElementById('httpsEnabled').checked ? '已启用' : '未启用';
+        const productionMode = document.getElementById('productionMode').checked ? '是' : '否';
+        const strictMode = document.getElementById('strictMode').checked ? '是' : '否';
+        const monitorNetwork = document.getElementById('monitorNetworkTraffic').checked ? '是' : '否';
         const interval = document.getElementById('riskInterval').value;
         const email = document.getElementById('adminEmail').value || '未填写';
         const notes = document.getElementById('notes').value || '无';
@@ -156,8 +368,12 @@
             <p><strong>部署环境：</strong> ${env}</p>
             <p><strong>拥有公网IP：</strong> ${hasPublic}</p>
             <p><strong>允许外部访问：</strong> ${allowExternal}</p>
+            <p><strong>操作系统：</strong> ${osType}</p>
             <p><strong>防火墙：</strong> ${firewall}</p>
             <p><strong>HTTPS：</strong> ${https}</p>
+            <p><strong>生产环境模式：</strong> ${productionMode}</p>
+            <p><strong>严格模式：</strong> ${strictMode}</p>
+            <p><strong>监控网络流量：</strong> ${monitorNetwork}</p>
             <p><strong>风险检测间隔：</strong> ${interval} 秒</p>
             <p><strong>管理员邮箱：</strong> ${email}</p>
             <p><strong>备注：</strong> ${notes}</p>
@@ -168,7 +384,7 @@
     prevBtn.onclick = prevStep;
     nextBtn.onclick = nextStep;
 
-    // 公网IP选项显示/隐藏（根据环境）
+    // 公网IP选项显示/隐藏
     const envSelect = document.getElementById('environment');
     const publicIpGroup = document.getElementById('publicIpGroup');
     function togglePublicIp() {
@@ -189,16 +405,26 @@
             document.getElementById('message').innerHTML = '<div class="error">请勾选确认配置正确</div>';
             return;
         }
+        const submitBtn = document.getElementById('submitBtn');
+        const originalText = submitBtn.textContent;
+        submitBtn.disabled = true;
+        submitBtn.textContent = '保存中...';
+        
         const data = {
             environment: envSelect.value,
             has_public_ip: document.getElementById('hasPublicIp').checked,
             firewall_enabled: document.getElementById('firewallEnabled').checked,
             https_enabled: document.getElementById('httpsEnabled').checked,
             allow_external_access: document.getElementById('allowExternal').checked,
-            auto_ban_ip: true,   // 默认开启，但实际已移除封禁功能，保留字段
+            auto_ban_ip: false,
             risk_check_interval: parseInt(document.getElementById('riskInterval').value),
             admin_email: document.getElementById('adminEmail').value,
-            notes: document.getElementById('notes').value
+            notes: document.getElementById('notes').value,
+            os_type: document.getElementById('osType').value,
+            production_mode: document.getElementById('productionMode').checked,
+            strict_mode: document.getElementById('strictMode').checked,
+            enable_auto_fix: false,
+            monitor_network_traffic: document.getElementById('monitorNetworkTraffic').checked
         };
         try {
             const response = await fetch('/setup', {
@@ -209,12 +435,19 @@
             const result = await response.json();
             if (result.success) {
                 document.getElementById('message').innerHTML = '<div class="success">✅ 配置已保存，正在跳转...</div>';
-                setTimeout(() => { window.location.href = '/'; }, 1500);
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 1500);
             } else {
                 document.getElementById('message').innerHTML = '<div class="error">保存失败：' + (result.message || '未知错误') + '</div>';
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
             }
         } catch (err) {
+            console.error('保存请求失败:', err);
             document.getElementById('message').innerHTML = '<div class="error">网络错误：' + err.message + '</div>';
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
         }
     });
 
@@ -225,10 +458,15 @@
             firewall_enabled: true,
             https_enabled: false,
             allow_external_access: false,
-            auto_ban_ip: true,
+            auto_ban_ip: false,
             risk_check_interval: 60,
             admin_email: '',
-            notes: '用户跳过配置向导'
+            notes: '用户跳过配置向导',
+            os_type: '',
+            production_mode: false,
+            strict_mode: false,
+            enable_auto_fix: false,
+            monitor_network_traffic: true
         };
         try {
             const response = await fetch('/setup', {
