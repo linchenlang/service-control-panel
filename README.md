@@ -33,14 +33,14 @@ pip install -r requirements.txt
 ## 配置
 
 ### 1. 创建配置文件
-复制 `config.json.example` 为 `config.json` 并按需修改。
+复制  `config.json.example`  为  `config.json`  并按需修改。
 
 ```bash
 cp config.json.example config.json
 ```
 
 ### 2. 配置 AI 助手（可选）
-AI 助手需要智谱 AI 的 API 密钥。复制 `.env.example` 为 `.env` 并填写密钥：
+AI 助手需要智谱 AI 的 API 密钥。复制  `.env.example`  为  `.env`  并填写密钥：
 
 ```bash
 cp .env.example .env
