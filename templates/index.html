@@ -82,20 +82,24 @@
             <h3>部署环境配置</h3>
             <div class="config-table-wrapper">
                 <table class="config-table">
-                    <tr><th>配置项</th><th>值</th></tr>
-                    <tr><td>部署环境</td><td><select id="deployEnvironment" style="width:100%;"><option value="intranet">内网环境</option><option value="internet">公网环境</option></select></td></tr>
-                    <tr><td>拥有公网IP</td><td><input type="checkbox" id="deployHasPublicIp"></td></tr>
-                    <tr><td>防火墙已开启</td><td><input type="checkbox" id="deployFirewallEnabled"></td></tr>
-                    <tr><td>已启用HTTPS</td><td><input type="checkbox" id="deployHttpsEnabled"></td></tr>
-                    <tr><td>允许外部访问</td><td><input type="checkbox" id="deployAllowExternal"></td></tr>
-                    <tr><td>风险检测间隔（秒）</td><td><input type="number" id="deployRiskInterval" value="60" min="30" max="300" step="10"></td></tr>
-                    <tr><td>管理员邮箱</td><td><input type="email" id="deployAdminEmail" placeholder="admin@example.com"></td></tr>
-                    <tr><td>备注</td><td><textarea id="deployNotes" rows="2" style="width:100%;"></textarea></td></tr>
-                    <tr><td>操作系统类型</td><td><select id="deployOsType" style="width:100%;"><option value="">自动检测</option><option value="windows">Windows</option><option value="linux">Linux</option><option value="macos">macOS</option></select></td></tr>
-                    <tr><td>生产环境模式</td><td><input type="checkbox" id="deployProductionMode"></td></tr>
-                    <tr><td>严格模式</td><td><input type="checkbox" id="deployStrictMode"></td></tr>
-                    <tr><td>启用自动修复建议</td><td><input type="checkbox" id="deployEnableAutoFix"></td></tr>
-                    <tr><td>监控网络流量异常</td><td><input type="checkbox" id="deployMonitorNetworkTraffic" checked></td></tr>
+                    <thead>
+                        <tr><th>配置项</th><th>值</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>部署环境</td><td><select id="deployEnvironment" style="width:100%;"><option value="intranet">内网环境</option><option value="internet">公网环境</option></select></td></tr>
+                        <tr><td>拥有公网IP</td><td><input type="checkbox" id="deployHasPublicIp"></td></tr>
+                        <tr><td>防火墙已开启</td><td><input type="checkbox" id="deployFirewallEnabled"></td></tr>
+                        <tr><td>已启用HTTPS</td><td><input type="checkbox" id="deployHttpsEnabled"></td></tr>
+                        <tr><td>允许外部访问</td><td><input type="checkbox" id="deployAllowExternal"></td></tr>
+                        <tr><td>风险检测间隔（秒）</td><td><input type="number" id="deployRiskInterval" value="60" min="30" max="300" step="10"></td></tr>
+                        <tr><td>管理员邮箱</td><td><input type="email" id="deployAdminEmail" placeholder="admin@example.com"></td></tr>
+                        <tr><td>备注</td><td><textarea id="deployNotes" rows="2" style="width:100%;"></textarea></td></tr>
+                        <tr><td>操作系统类型</td><td><select id="deployOsType" style="width:100%;"><option value="">自动检测</option><option value="windows">Windows</option><option value="linux">Linux</option><option value="macos">macOS</option></select></td></tr>
+                        <tr><td>生产环境模式</td><td><input type="checkbox" id="deployProductionMode"></td></tr>
+                        <tr><td>严格模式</td><td><input type="checkbox" id="deployStrictMode"></td></tr>
+                        <tr><td>启用自动修复建议</td><td><input type="checkbox" id="deployEnableAutoFix"></td></tr>
+                        <tr><td>监控网络流量异常</td><td><input type="checkbox" id="deployMonitorNetworkTraffic" checked></td></tr>
+                    </tbody>
                 </table>
             </div>
             <button id="saveDeployConfigBtn" class="btn-top" style="margin-top:1rem;">保存部署配置</button>
@@ -118,11 +122,18 @@
         </div>
         <div id="risksList"></div>
     </div>
+    <!-- AI助手界面（已添加模型选择下拉框） -->
     <div id="ai-tab" class="tab-content" style="display: none;">
         <div class="ai-container">
             <div class="ai-header">
                 <h2>AI 运维助手</h2>
-                <p>我可以帮你分析服务器状态、诊断问题、提供运维建议。每次对话都会自动获取当前服务器信息作为背景。</p>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; flex-wrap: wrap;">
+                    <p style="flex: 1; margin: 0;">我可以帮你分析服务器状态、诊断问题、提供运维建议。每次对话都会自动获取当前服务器信息作为背景。</p>
+                    <div style="margin-left: 16px;">
+                        <label for="modelSelect" style="font-size: 0.85rem; margin-right: 8px;">模型：</label>
+                        <select id="modelSelect" style="padding: 4px 8px; border-radius: 6px; border: 1px solid #ddd; background: white;"></select>
+                    </div>
+                </div>
             </div>
             <div class="chat-messages" id="chatMessages">
                 <div class="message system">你好！我是你的AI运维助手。我已经了解了当前服务器的状态（CPU、内存、磁盘、服务列表、风险等）。你可以问我任何关于服务器的问题，比如：“哪个服务占用内存最多？”、“如何优化磁盘空间？”等。</div>
