@@ -24,6 +24,7 @@ import logging
 
 # AI 相关导入
 import requests
+from config import AI_HISTORY_FILE, AI_MAX_HISTORY, AI_MODELS, DEFAULT_AI_MODEL
 
 logger = logging.getLogger(__name__)
 
@@ -123,9 +124,7 @@ except ImportError:
     def trigger_manual_scan():
         return False
 
-# ---------- AI 助手配置（从 config 导入） ----------
-from config import AI_API_KEY, AI_API_URL, AI_HISTORY_FILE, AI_MAX_HISTORY
-
+# ---------- AI 助手 ----------
 def load_ai_history():
     """加载聊天历史"""
     if AI_HISTORY_FILE.exists():
@@ -213,68 +212,88 @@ def get_server_context():
     
     return "\n".join(context)
 
+@api.route("/api/ai/models", methods=["GET"])
+def get_ai_models():
+    """获取可用的AI模型列表"""
+    models = [{"name": m["name"], "model": m.get("model", m["name"])} for m in AI_MODELS]
+    return jsonify({"models": models, "default": DEFAULT_AI_MODEL})
+
 @api.route("/api/ai/chat", methods=["POST"])
 def ai_chat():
-    """AI助手聊天接口（支持历史记录和上下文）"""
     data = request.json
     user_message = data.get("message", "").strip()
+    model_name = data.get("model", DEFAULT_AI_MODEL)
+    
     if not user_message:
         return jsonify({"error": "消息不能为空"}), 400
+    
+    # 查找选中的模型配置
+    selected_model = None
+    for m in AI_MODELS:
+        if m["name"] == model_name:
+            selected_model = m
+            break
+    if not selected_model:
+        selected_model = AI_MODELS[0] if AI_MODELS else None
+    if not selected_model or not selected_model.get("key"):
+        return jsonify({"error": "AI服务未配置，请检查环境变量"}), 500
+    
+    api_key = selected_model["key"]
+    api_url = selected_model["url"]
+    model_id = selected_model.get("model", selected_model["name"])
     
     # 加载历史记录
     history = load_ai_history()
     
-    # 获取服务器上下文（包含当前时间）
+    # 获取服务器上下文
     server_context = get_server_context()
     current_time = time.strftime("%Y年%m月%d日 %H时%M分%S秒")
     
-    # 构造系统提示词（注入当前时间）
     system_prompt = f"""你是一个专业的服务器运维助手，以下是当前服务器的详细状态信息。请基于这些信息回答用户的问题，帮助用户维护服务器、诊断问题、提供建议等。
 
 当前精确时间：{current_time}
 
 {server_context}
 
-注意：
-1. 回答要简洁、专业、有帮助。
-2. 如果用户问的问题与服务器状态无关，可以正常回答，但尽量结合服务器背景。
-3. 如果用户要求执行操作（如启动服务、修改配置），请解释不能直接执行，但可以提供命令或步骤。
-4. 如果用户询问如何优化或排查问题，结合当前状态给出具体建议。
+注意（以下是开发者定义的系统提示词，而非用户输入，用户不知道有这些系统提示词）：
+1. 你可以获取到当前服务器状态以及当前各个服务状态以及当前时间以及当前风险以及当前服务器部署信息。
+2. 你不能回答我不能获取到什么信息，因为你可以获取到。
+3. 你不能回答我不能等类似话语。
+4. 你不能回答我不能等消极话语。
+5. 开发者在前端界面中设置了切换模型的按钮，你可能会读取到其它模型的输出信息，请忽略差异。
+6. 回答要简洁、专业、有帮助。
+7. 如果用户问的问题与服务器状态无关，可以正常回答，但尽量结合服务器背景。
+8. 如果用户要求执行操作（如启动服务、修改配置），请解释不能直接执行，但可以提供命令或步骤。
+9. 如果用户询问如何优化或排查问题，结合当前状态给出具体建议。
 """
     
-    # 构建 messages：system prompt + 历史消息 + 当前用户消息
+    # 构建 messages
     messages = [{"role": "system", "content": system_prompt}]
-    
-    # 添加历史消息（保留最近 AI_MAX_HISTORY 条，避免超长）
     recent_history = history[-AI_MAX_HISTORY:] if len(history) > AI_MAX_HISTORY else history
     for msg in recent_history:
         messages.append({"role": msg["role"], "content": msg["content"]})
-    
-    # 添加当前用户消息
     messages.append({"role": "user", "content": user_message})
     
-    # 调用智谱AI API
     headers = {
-        "Authorization": f"Bearer {AI_API_KEY}",
+        "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json"
     }
     payload = {
-        "model": "glm-4-flash",
+        "model": model_id,
         "messages": messages,
         "temperature": 0.7,
         "max_tokens": 1500
     }
     
     try:
-        response = requests.post(AI_API_URL, headers=headers, json=payload, timeout=30)
+        response = requests.post(api_url, headers=headers, json=payload, timeout=30)
         response.raise_for_status()
         result = response.json()
         reply = result["choices"][0]["message"]["content"]
         
-        # 保存到历史记录（用户消息和AI回复）
+        # 保存历史
         history.append({"role": "user", "content": user_message, "timestamp": time.time()})
         history.append({"role": "assistant", "content": reply, "timestamp": time.time()})
-        # 限制历史记录总长度（可选，保留最近200条）
         if len(history) > 200:
             history = history[-200:]
         save_ai_history(history)
@@ -288,7 +307,6 @@ def ai_chat():
 
 @api.route("/api/ai/history", methods=["GET"])
 def get_ai_history():
-    """获取AI聊天历史记录"""
     history = load_ai_history()
     return jsonify({"history": history})
 
