@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>面板初始配置向导</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="wizard-overlay">
+    <div class="wizard-container">
+        <div class="wizard-header">
+            <h1>欢迎使用服务管理面板</h1>
+            <p>让我们花一分钟完成基础设置</p>
+        </div>
+
+        <!-- 步骤指示器 -->
+        <div class="wizard-steps">
+            <div class="step active" data-step="1">1. 部署环境</div>
+            <div class="step" data-step="2">2. 安全选项</div>
+            <div class="step" data-step="3">3. 完成</div>
+        </div>
+
+        <form id="setupForm">
+            <!-- 步骤1：部署环境 -->
+            <div class="wizard-step" id="step1">
+                <div class="form-group">
+                    <label>您的服务器部署在什么环境？</label>
+                    <select id="environment" required>
+                        <option value="intranet">内网环境（仅内部访问，无公网IP）</option>
+                        <option value="internet">公网环境（有公网IP，对外提供服务）</option>
+                    </select>
+                    <div class="hint">这个选择会影响风险检测的建议（例如内网不会提醒防火墙未开启）。</div>
+                </div>
+                <div class="form-group" id="publicIpGroup">
+                    <label><input type="checkbox" id="hasPublicIp"> 服务器拥有公网IP地址</label>
+                </div>
+                <div class="form-group">
+                    <label><input type="checkbox" id="allowExternal"> 允许外部网络直接访问服务</label>
+                    <div class="hint">如果您有公网IP且希望外部访问，请勾选。</div>
+                </div>
+            </div>
+
+            <!-- 步骤2：安全选项 -->
+            <div class="wizard-step" style="display:none;" id="step2">
+                <div class="form-group">
+                    <label><input type="checkbox" id="firewallEnabled" checked> 防火墙已开启并正确配置</label>
+                </div>
+                <div class="form-group">
+                    <label><input type="checkbox" id="httpsEnabled"> 已启用HTTPS/SSL加密</label>
+                    <div class="hint">强烈建议公网环境启用。</div>
+                </div>
+                <div class="form-group">
+                    <label>风险检测间隔（秒）</label>
+                    <input type="number" id="riskInterval" value="60" min="30" max="300" step="10">
+                    <div class="hint">每隔多少秒自动扫描一次系统风险。</div>
+                </div>
+                <div class="form-group">
+                    <label>管理员邮箱（可选，用于未来告警）</label>
+                    <input type="email" id="adminEmail" placeholder="admin@example.com">
+                </div>
+                <div class="form-group">
+                    <label>备注（可选）</label>
+                    <textarea id="notes" rows="2" placeholder="例如：家庭服务器、测试环境等"></textarea>
+                </div>
+            </div>
+
+            <!-- 步骤3：确认 -->
+            <div class="wizard-step" style="display:none;" id="step3">
+                <div class="summary-box">
+                    <h3>配置摘要</h3>
+                    <div id="summaryContent"></div>
+                </div>
+                <div class="form-group">
+                    <label><input type="checkbox" id="agreeTerms" required> 我已确认以上配置正确</label>
+                </div>
+            </div>
+
+            <div class="step-buttons">
+                <button type="button" id="prevBtn" class="btn-secondary" style="display:none;">上一步</button>
+                <button type="button" id="nextBtn" class="btn-primary">下一步</button>
+                <button type="submit" id="submitBtn" class="btn-primary" style="display:none;">保存并进入面板</button>
+                <button type="button" id="skipBtn" class="btn-secondary">跳过，稍后配置</button>
+            </div>
+            <div id="message" style="margin-top:1rem; text-align:center;"></div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // 多步向导逻辑
+    let currentStep = 1;
+    const steps = [1,2,3];
+    const stepDivs = {
+        1: document.getElementById('step1'),
+        2: document.getElementById('step2'),
+        3: document.getElementById('step3')
+    };
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const submitBtn = document.getElementById('submitBtn');
+    const skipBtn = document.getElementById('skipBtn');
+    const stepIndicators = document.querySelectorAll('.step');
+
+    function updateButtons() {
+        prevBtn.style.display = currentStep === 1 ? 'none' : 'inline-block';
+        if (currentStep === 3) {
+            nextBtn.style.display = 'none';
+            submitBtn.style.display = 'inline-block';
+        } else {
+            nextBtn.style.display = 'inline-block';
+            submitBtn.style.display = 'none';
+        }
+    }
+
+    function showStep(step) {
+        for (let s of steps) {
+            stepDivs[s].style.display = s === step ? 'block' : 'none';
+        }
+        // 更新步骤指示器样式
+        stepIndicators.forEach(ind => {
+            const stepNum = parseInt(ind.dataset.step);
+            if (stepNum === step) ind.classList.add('active');
+            else if (stepNum < step) ind.classList.add('done');
+            else ind.classList.remove('active', 'done');
+        });
+        currentStep = step;
+        updateButtons();
+        if (step === 3) updateSummary();
+    }
+
+    function nextStep() {
+        if (currentStep === 1) {
+            // 可选验证
+            showStep(2);
+        } else if (currentStep === 2) {
+            showStep(3);
+        }
+    }
+
+    function prevStep() {
+        if (currentStep === 2) showStep(1);
+        else if (currentStep === 3) showStep(2);
+    }
+
+    function updateSummary() {
+        const env = document.getElementById('environment').value === 'intranet' ? '内网环境' : '公网环境';
+        const hasPublic = document.getElementById('hasPublicIp').checked ? '是' : '否';
+        const allowExternal = document.getElementById('allowExternal').checked ? '是' : '否';
+        const firewall = document.getElementById('firewallEnabled').checked ? '已开启' : '未开启';
+        const https = document.getElementById('httpsEnabled').checked ? '已启用' : '未启用';
+        const interval = document.getElementById('riskInterval').value;
+        const email = document.getElementById('adminEmail').value || '未填写';
+        const notes = document.getElementById('notes').value || '无';
+        const summary = `
+            <p><strong>部署环境：</strong> ${env}</p>
+            <p><strong>拥有公网IP：</strong> ${hasPublic}</p>
+            <p><strong>允许外部访问：</strong> ${allowExternal}</p>
+            <p><strong>防火墙：</strong> ${firewall}</p>
+            <p><strong>HTTPS：</strong> ${https}</p>
+            <p><strong>风险检测间隔：</strong> ${interval} 秒</p>
+            <p><strong>管理员邮箱：</strong> ${email}</p>
+            <p><strong>备注：</strong> ${notes}</p>
+        `;
+        document.getElementById('summaryContent').innerHTML = summary;
+    }
+
+    prevBtn.onclick = prevStep;
+    nextBtn.onclick = nextStep;
+
+    // 公网IP选项显示/隐藏（根据环境）
+    const envSelect = document.getElementById('environment');
+    const publicIpGroup = document.getElementById('publicIpGroup');
+    function togglePublicIp() {
+        if (envSelect.value === 'intranet') {
+            publicIpGroup.style.display = 'none';
+            document.getElementById('hasPublicIp').checked = false;
+        } else {
+            publicIpGroup.style.display = 'block';
+        }
+    }
+    envSelect.addEventListener('change', togglePublicIp);
+    togglePublicIp();
+
+    // 提交表单
+    document.getElementById('setupForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!document.getElementById('agreeTerms').checked) {
+            document.getElementById('message').innerHTML = '<div class="error">请勾选确认配置正确</div>';
+            return;
+        }
+        const data = {
+            environment: envSelect.value,
+            has_public_ip: document.getElementById('hasPublicIp').checked,
+            firewall_enabled: document.getElementById('firewallEnabled').checked,
+            https_enabled: document.getElementById('httpsEnabled').checked,
+            allow_external_access: document.getElementById('allowExternal').checked,
+            auto_ban_ip: true,   // 默认开启，但实际已移除封禁功能，保留字段
+            risk_check_interval: parseInt(document.getElementById('riskInterval').value),
+            admin_email: document.getElementById('adminEmail').value,
+            notes: document.getElementById('notes').value
+        };
+        try {
+            const response = await fetch('/setup', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const result = await response.json();
+            if (result.success) {
+                document.getElementById('message').innerHTML = '<div class="success">✅ 配置已保存，正在跳转...</div>';
+                setTimeout(() => { window.location.href = '/'; }, 1500);
+            } else {
+                document.getElementById('message').innerHTML = '<div class="error">保存失败：' + (result.message || '未知错误') + '</div>';
+            }
+        } catch (err) {
+            document.getElementById('message').innerHTML = '<div class="error">网络错误：' + err.message + '</div>';
+        }
+    });
+
+    async function skipSetup() {
+        const data = {
+            environment: 'intranet',
+            has_public_ip: false,
+            firewall_enabled: true,
+            https_enabled: false,
+            allow_external_access: false,
+            auto_ban_ip: true,
+            risk_check_interval: 60,
+            admin_email: '',
+            notes: '用户跳过配置向导'
+        };
+        try {
+            const response = await fetch('/setup', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const result = await response.json();
+            if (result.success) {
+                window.location.href = '/';
+            } else {
+                alert('跳过失败：' + result.message);
+            }
+        } catch (err) {
+            alert('网络错误：' + err.message);
+        }
+    }
+    skipBtn.onclick = skipSetup;
+</script>
+</body>
+</html>

@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>服务管理面板 - 企业级专业版</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+<div class="sidebar">
+    <h2>服务面板</h2>
+    <div class="nav-item active" data-tab="dashboard"><span>首页</span></div>
+    <div class="nav-item" data-tab="services"><span>服务</span></div>
+    <div class="nav-item" data-tab="traffic"><span>流量</span></div>
+    <div class="nav-item" data-tab="monitor"><span>监控</span></div>
+    <div class="nav-item" data-tab="settings"><span>设置</span></div>
+    <div class="nav-item" data-tab="ai"><span>AI助手</span></div>
+    <div class="nav-item" data-tab="risks"><span>风险参考</span></div>
+    <div class="nav-item" data-tab="oplogs"><span>操作日志</span></div>
+</div>
+<div class="main-content">
+    <div id="dashboard-tab" class="tab-content" style="display: block;">
+        <div class="dashboard-header">
+            <h1>系统概览</h1>
+            <div class="total-load" id="totalLoadDisplay">总负载: --%</div>
+        </div>
+        <div class="sensors-grid" id="sensorsGrid"></div>
+        <div class="disks-section" style="margin: 1.5rem 0;">
+            <h3 style="margin-bottom: 0.8rem;">磁盘状态</h3>
+            <div id="disksGrid" class="disks-grid"></div>
+        </div>
+        <div class="two-columns">
+            <div id="networkCardContainer" class="sensor-card" style="flex: 1; margin-right: 0.75rem;"></div>
+            <div id="ipCardContainer" class="sensor-card" style="flex: 1; margin-left: 0.75rem;"></div>
+        </div>
+        <div id="riskCard" style="margin: 1rem 0;"></div>
+        <div class="trend-section">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3>实时曲线</h3>
+                <div>
+                    <button id="switchToNetBtn" class="small-btn active">网络流量</button>
+                    <button id="switchToDiskBtn" class="small-btn">磁盘IO</button>
+                </div>
+            </div>
+            <canvas id="trendChart" width="800" height="300" style="width:100%; height:300px;"></canvas>
+            <div id="diskSelect" style="display:none; margin-top:10px;">
+                <label>选择磁盘: </label>
+                <select id="diskSelectDropdown"></select>
+            </div>
+        </div>
+    </div>
+    <div id="services-tab" class="tab-content" style="display: none;">
+        <div class="header">
+            <h1>服务管理</h1>
+            <div class="top-buttons">
+                <button class="btn-top" id="startAllBtn">全部启动</button>
+                <button class="btn-top" id="stopAllBtn">全部停止</button>
+                <button class="btn-top" id="restartAllBtn">全部重启</button>
+            </div>
+        </div>
+        <div class="services-grid" id="servicesGrid"></div>
+    </div>
+    <div id="traffic-tab" class="tab-content" style="display: none;">
+        <h2>服务请求频率 (每5秒采样)</h2>
+        <div class="traffic-grid" id="trafficGrid"></div>
+    </div>
+    <div id="monitor-tab" class="tab-content" style="display: none;">
+        <h2>服务资源监控 (每3秒更新)</h2>
+        <div class="monitor-table" id="monitorTable"></div>
+    </div>
+    <div id="settings-tab" class="tab-content" style="display: none;">
+        <h2>面板设置</h2>
+        <div class="settings-form">
+            <div class="setting-item"><label>监听地址 (panel_host):</label><input type="text" id="panelHost" value="0.0.0.0"></div>
+            <div class="setting-item"><label>监听端口 (panel_port):</label><input type="number" id="panelPort" value="8888"></div>
+            <button id="saveSettingsBtn" class="btn-top">保存并重启提示</button>
+            <p class="note">修改后需要手动重启面板服务生效</p>
+        </div>
+        <div style="margin-top: 2rem; border-top: 1px solid rgba(0,0,0,0.1); padding-top: 1.5rem;">
+            <h3>部署环境配置</h3>
+            <div class="config-table-wrapper">
+                <table class="config-table">
+                    <tr><th>配置项</th><th>值</th></tr>
+                    <tr><td>部署环境</td><td><select id="deployEnvironment" style="width:100%;"><option value="intranet">内网环境</option><option value="internet">公网环境</option></select></td></tr>
+                    <tr><td>拥有公网IP</td><td><input type="checkbox" id="deployHasPublicIp"></td></tr>
+                    <tr><td>防火墙已开启</td><td><input type="checkbox" id="deployFirewallEnabled"></td></tr>
+                    <tr><td>已启用HTTPS</td><td><input type="checkbox" id="deployHttpsEnabled"></td></tr>
+                    <tr><td>允许外部访问</td><td><input type="checkbox" id="deployAllowExternal"></td></tr>
+                    <tr><td>风险检测间隔（秒）</td><td><input type="number" id="deployRiskInterval" value="60" min="30" max="300" step="10"></td></tr>
+                    <tr><td>管理员邮箱</td><td><input type="email" id="deployAdminEmail" placeholder="admin@example.com"></td></tr>
+                    <tr><td>备注</td><td><textarea id="deployNotes" rows="2" style="width:100%;"></textarea></td></tr>
+                    <tr><td>操作系统类型</td><td><select id="deployOsType" style="width:100%;"><option value="">自动检测</option><option value="windows">Windows</option><option value="linux">Linux</option><option value="macos">macOS</option></select></td></tr>
+                    <tr><td>生产环境模式</td><td><input type="checkbox" id="deployProductionMode"></td></tr>
+                    <tr><td>严格模式</td><td><input type="checkbox" id="deployStrictMode"></td></tr>
+                    <tr><td>启用自动修复建议</td><td><input type="checkbox" id="deployEnableAutoFix"></td></tr>
+                    <tr><td>监控网络流量异常</td><td><input type="checkbox" id="deployMonitorNetworkTraffic" checked></td></tr>
+                </table>
+            </div>
+            <button id="saveDeployConfigBtn" class="btn-top" style="margin-top:1rem;">保存部署配置</button>
+            <p class="note">这些配置将影响风险检测模块的警告策略。</p>
+        </div>
+        <div style="margin-top: 2rem; border-top: 1px solid rgba(0,0,0,0.1); padding-top: 1.5rem;">
+            <h3>服务配置管理</h3>
+            <div id="serviceConfigList" class="config-table-wrapper"></div>
+            <button id="addServiceBtn" class="btn-top" style="margin-top: 1rem;">添加服务</button>
+        </div>
+    </div>
+    <div id="oplogs-tab" class="tab-content" style="display: none;">
+        <h2>操作记录</h2>
+        <div id="historyTable" style="background: rgba(255,255,255,0.5); border-radius: 1rem; padding: 1rem; overflow-x: auto;"></div>
+    </div>
+    <div id="risks-tab" class="tab-content" style="display: none;">
+        <div class="risks-header">
+            <h2>系统风险清单</h2>
+            <button id="manualScanBtn" class="btn-top">立即扫描</button>
+        </div>
+        <div id="risksList"></div>
+    </div>
+    <div id="ai-tab" class="tab-content" style="display: none;">
+        <div class="ai-container">
+            <div class="ai-header">
+                <h2>AI 运维助手</h2>
+                <p>我可以帮你分析服务器状态、诊断问题、提供运维建议。每次对话都会自动获取当前服务器信息作为背景。</p>
+            </div>
+            <div class="chat-messages" id="chatMessages">
+                <div class="message system">你好！我是你的AI运维助手。我已经了解了当前服务器的状态（CPU、内存、磁盘、服务列表、风险等）。你可以问我任何关于服务器的问题，比如：“哪个服务占用内存最多？”、“如何优化磁盘空间？”等。</div>
+            </div>
+            <div class="chat-input-area">
+                <textarea id="chatInput" rows="2" placeholder="输入你的问题..."></textarea>
+                <button id="sendChatBtn" class="btn-top">发送</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 日志模态框 -->
+<div id="logModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header"><span id="logTitle">服务日志</span><div><button id="clearLogBtn" class="small-btn" style="background:#c0392b; margin-right:0.5rem;">清空日志</button><button class="close-btn" onclick="closeModal()">&times;</button></div></div>
+        <div class="modal-body" id="logContent">加载中...</div>
+        <div style="text-align:right; margin-top:0.5rem;"><button onclick="scrollLogToBottom()" style="background:#475569; color:white; border:none; border-radius:2rem; padding:0.2rem 0.8rem;">滚动到底部</button></div>
+    </div>
+</div>
+<div id="alertModal" class="modal">
+    <div class="modal-content"><div class="modal-header"><span style="color:#c0392b;">通知</span><button class="close-btn" onclick="closeAlertModal()">&times;</button></div><div class="modal-body" id="alertModalContent"></div><div style="text-align:center; margin-top:1rem;"><button id="alertModalConfirmBtn" style="padding:0.5rem 1rem; background:#c0392b; color:white; border:none; border-radius:2rem;">确认</button></div></div>
+</div>
+
+<!-- ipconfig 详细信息模态框 -->
+<div id="ipconfigModal" class="modal">
+    <div class="modal-content" style="max-width: 90%; width: 90%;">
+        <div class="modal-header"><span>ipconfig /all 详细信息</span><button class="close-btn" onclick="closeIpconfigModal()">&times;</button></div>
+        <div class="modal-body" id="ipconfigOutput" style="background: #1e1f2c; color: #e2e8f0; font-family: monospace; white-space: pre-wrap; overflow: auto; max-height: 70vh;">加载中...</div>
+    </div>
+</div>
+
+<!-- 服务编辑模态框 -->
+<div id="serviceModal" class="modal">
+    <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-header"><span id="serviceModalTitle">服务</span><button class="close-btn" onclick="closeServiceModal()">&times;</button></div>
+        <div class="modal-body" style="background: white; color: #333;">
+            <input type="hidden" id="editServiceId">
+            <div><label>ID *</label><input type="text" id="serviceId" style="width:100%; padding:0.4rem;"></div>
+            <div><label>名称 *</label><input type="text" id="serviceName" style="width:100%; padding:0.4rem;"></div>
+            <div><label>启动命令 *</label><input type="text" id="serviceCommand" style="width:100%; padding:0.4rem;" placeholder='python3 app.py 或 ["python3","app.py"]'></div>
+            <div><label>工作目录 (cwd)</label><input type="text" id="serviceCwd" style="width:100%; padding:0.4rem;" placeholder="绝对路径或相对路径"></div>
+            <div><label>端口 (可选)</label><input type="number" id="servicePort" style="width:100%; padding:0.4rem;"></div>
+            <div style="text-align: right;"><button id="saveServiceBtn" class="btn-top">保存</button></div>
+        </div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

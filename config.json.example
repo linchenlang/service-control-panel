@@ -1,0 +1,31 @@
+{
+  "services": [
+    {
+      "id": "example_app",
+      "name": "示例应用",
+      "command": ["python3", "app.py"],
+      "cwd": "./apps/example_app",
+      "port": 3000
+    }
+  ],
+  "panel_host": "0.0.0.0",
+  "panel_port": 8888,
+  "deployment": {
+    "environment": "intranet",
+    "has_public_ip": false,
+    "firewall_enabled": true,
+    "https_enabled": false,
+    "allow_external_access": false,
+    "auto_ban_ip": false,
+    "risk_check_interval": 60,
+    "admin_email": "",
+    "notes": "",
+    "os_type": "",
+    "production_mode": false,
+    "strict_mode": false,
+    "enable_auto_fix": false,
+    "monitor_network_traffic": true,
+    "configured": false,
+    "setup_done": false
+  }
+}
