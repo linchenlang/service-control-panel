@@ -18,6 +18,8 @@ let currentLogServiceId = null;
 
 let riskPollingTimer = null;
 let chatHistoryLoaded = false;   // AI 聊天历史是否已加载
+let currentAIModel = null;       // 当前选中的模型名称
+let availableModels = [];        // 可用模型列表
 
 // ---------- Toast 队列 ----------
 let toastQueue = [];
@@ -63,9 +65,7 @@ function processAlertModalQueue() {
     const message = alertModalQueue.shift();
     const modal = document.getElementById('alertModal');
     const content = document.getElementById('alertModalContent');
-    content.innerHTML = message;  // 只设置消息内容，不添加按钮
-    
-    // 获取底部已有的确认按钮
+    content.innerHTML = message;
     const confirmBtn = document.getElementById('alertModalConfirmBtn');
     if (confirmBtn) {
         const newBtn = confirmBtn.cloneNode(true);
@@ -215,14 +215,9 @@ async function loadOperationHistory() {
         else if (actionText === 'maintenance_off') actionText = '维护关闭';
         else if (actionText === 'start') actionText = '启动';
         else if (actionText === 'stop') actionText = '停止';
-        
-        // 服务名称：优先使用 r.service_name，如果为空则尝试从 r.service_id 获取或显示 '未知'
         let serviceDisplay = r.service_name || r.service_id || '未知服务';
-        
-        // IP 标红逻辑：只有非本机且非 127.0.0.1 才标红
         const isLocal = (r.source_ip === '127.0.0.1' || r.source_ip === currentDeviceIp);
         const ipStyle = isLocal ? '' : 'color: #c0392b; font-weight: bold;';
-        
         html += `<tr>
             <td style="padding:8px;">${r.datetime}</td>
             <td>${escapeHtml(serviceDisplay)}</td>
@@ -764,7 +759,7 @@ async function refreshMonitor() {
             case 'maintenance': statusIcon = '⚪'; statusText = '维护中'; break;
             default: statusIcon = '⚫'; statusText = '已停止';
         }
-        html += `<tr><td style="padding:8px;">${escapeHtml(s.name)}</td><td>${statusIcon} ${statusText}</td><td>${s.running ? s.cpu_percent : '-'}</td><td>${s.running ? s.mem_mb : '-'}</td>`;
+        html += `<tr><td style="padding:8px;">${escapeHtml(s.name)}</td><td style="padding:8px;">${statusIcon} ${statusText}</td><td style="padding:8px;">${s.running ? s.cpu_percent : '-'}</td><td style="padding:8px;">${s.running ? s.mem_mb : '-'}</td>`;
     }
     html += '</tbody></table>';
     document.getElementById('monitorTable').innerHTML = html;
@@ -981,6 +976,33 @@ async function loadChatHistory() {
     }
 }
 
+async function loadAIModels() {
+    try {
+        const res = await fetchWithError('/api/ai/models');
+        const data = await res.json();
+        availableModels = data.models || [];
+        const defaultModel = data.default;
+        const select = document.getElementById('modelSelect');
+        if (select && availableModels.length > 0) {
+            select.innerHTML = '';
+            availableModels.forEach(model => {
+                const option = document.createElement('option');
+                option.value = model.name;
+                option.textContent = model.name;
+                if (model.name === defaultModel) option.selected = true;
+                select.appendChild(option);
+            });
+            currentAIModel = select.value;
+            select.onchange = () => {
+                currentAIModel = select.value;
+                showToast(`已切换到模型: ${currentAIModel}`, 'info');
+            };
+        }
+    } catch (e) {
+        console.error('加载AI模型列表失败', e);
+    }
+}
+
 async function sendAIMessage() {
     const input = document.getElementById('chatInput');
     const message = input.value.trim();
@@ -1002,7 +1024,10 @@ async function sendAIMessage() {
         const res = await fetchWithError('/api/ai/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message: message })
+            body: JSON.stringify({ 
+                message: message,
+                model: currentAIModel 
+            })
         });
         const data = await res.json();
         document.getElementById('ai-loading')?.remove();
@@ -1060,9 +1085,10 @@ async function init() {
     await loadServiceConfigs();
     await initTrendChart();
     await loadDeploymentConfig();
+    await loadAIModels();   // 加载AI模型列表
     document.getElementById('startAllBtn').onclick = startAll;
     document.getElementById('stopAllBtn').onclick = stopAll;
-    document.getElementById('restartAllBtn').onclick = restartAll;  // 新增
+    document.getElementById('restartAllBtn').onclick = restartAll;
     document.getElementById('saveSettingsBtn').onclick = saveSettings;
     document.getElementById('addServiceBtn').onclick = () => openServiceModal();
     document.getElementById('saveServiceBtn').onclick = saveService;
