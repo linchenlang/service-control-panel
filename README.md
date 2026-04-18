@@ -12,7 +12,7 @@
 - 动态服务配置（Web 界面添加 / 编辑 / 删除服务，热重载）
 - IP 地址详细信息展示（Windows 下调用 `ipconfig /all` 解析，支持 IPv6 临时地址）
 - 静默运行（控制台不输出请求日志，仅保留必要错误）
-- **AI 运维助手**：基于智谱 AI，可分析服务器状态、诊断问题、提供运维建议，支持多轮对话上下文
+- **AI 运维助手**：基于智谱 AI，可分析服务器状态、诊断问题、提供运维建议，支持多轮对话上下文，并支持多模型切换
 - **风险检测**：多维度扫描（配置、资源、安全、日志、依赖、性能、证书、进程、网络等），支持严格模式、生产环境模式，可手动触发立即扫描
 - **部署环境配置**：可自定义操作系统类型、公网 IP、防火墙、HTTPS、外部访问、自动封禁 IP、风险检测间隔、严格模式、生产模式等
 
@@ -47,8 +47,17 @@ cp .env.example .env
 ```
 
 编辑 `.env` 文件：
+
+#### 单模型配置（简单）
 ```env
 AI_API_KEY=your_actual_api_key
+AI_MODEL=glm-4-flash
+AI_API_URL=https://open.bigmodel.cn/api/paas/v4/chat/completions
+```
+
+#### 多模型配置（高级，支持前端切换）
+```env
+AI_MODELS='[{"name":"GLM-4-Flash","key":"your_key_1","url":"https://open.bigmodel.cn/api/paas/v4/chat/completions","model":"glm-4-flash"},{"name":"GLM-5.1","key":"your_key_2","url":"https://open.bigmodel.cn/api/paas/v4/chat/completions","model":"glm-5.1"}]'
 ```
 
 如果不使用 AI 助手，可以不配置，面板其他功能正常。
@@ -184,6 +193,7 @@ python app.py
 | GET | `/api/operation_history` | 获取操作记录（启动/停止/维护开关） |
 | GET | `/api/risks` | 获取系统风险检测结果（支持内网/公网环境） |
 | POST | `/api/risks/scan` | 手动触发风险扫描 |
+| GET | `/api/ai/models` | 获取可用的 AI 模型列表（用于前端切换） |
 | POST | `/api/ai/chat` | AI 助手聊天接口（支持上下文和历史记录） |
 | GET | `/api/ai/history` | 获取 AI 聊天历史 |
 
@@ -224,7 +234,7 @@ service-control-panel/
 - 如果未安装 `psutil`，部分监控功能不可用（建议安装）。
 - 在 Windows 系统上，IP 地址详情通过调用 `ipconfig /all` 解析，支持显示临时 IPv6 地址和普通 IPv6 地址。
 - 风险检测模块启动后立即执行首次扫描，界面会显示“正在扫描”，约 1-2 秒后展示结果。可在设置中调整检测间隔和严格模式。
-- AI 助手需要有效的智谱 AI API 密钥，并确保服务器能访问 `https://open.bigmodel.cn`。聊天历史自动保存到 `ai_chat_history.json`，重启面板不会丢失。
+- AI 助手需要有效的智谱 AI API 密钥，并确保服务器能访问 `https://open.bigmodel.cn`。聊天历史自动保存到 `ai_chat_history.json`，重启面板不会丢失。支持多模型切换，可在前端下拉菜单中选择不同模型。
 
 ## 开源协议
 
